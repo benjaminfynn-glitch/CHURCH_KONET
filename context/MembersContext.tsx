@@ -1,7 +1,18 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Member, User, ActivityLogEntry, MessageTemplate, SentMessage } from '../types';
 import { validatePhoneNumber } from '../services/smsUtils';
+import { db } from '../services/firebase';
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  onSnapshot, 
+  query, 
+  orderBy, 
+  setDoc
+} from 'firebase/firestore';
 
 // Helper for Name Formatting
 export const formatProperCase = (str: string): string => {
@@ -11,12 +22,6 @@ export const formatProperCase = (str: string): string => {
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
-
-// Initial Data (Clean for Backend Integration)
-const INITIAL_MEMBERS: Member[] = [];
-const INITIAL_ORGS: string[] = [];
-const INITIAL_TEMPLATES: MessageTemplate[] = [];
-const INITIAL_USERS: User[] = [];
 
 interface MembersContextType {
   members: Member[];
@@ -53,204 +58,242 @@ interface MembersContextType {
 const MembersContext = createContext<MembersContextType | undefined>(undefined);
 
 export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // ONE-TIME CLEANUP: Check if we've cleaned up legacy mock data for the backend transition
+  const [members, setMembers] = useState<Member[]>([]);
+  const [organizations, setOrganizations] = useState<string[]>([]);
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const [sentMessages, setSentMessages] = useState<SentMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // --- Real-time Firestore Listeners ---
+
   useEffect(() => {
-    const hasCleaned = localStorage.getItem('ck_cleanup_v1');
-    if (!hasCleaned) {
-      console.log('Performing one-time data cleanup for backend preparation...');
-      localStorage.removeItem('ck_members');
-      localStorage.removeItem('ck_organizations');
-      localStorage.removeItem('ck_templates');
-      localStorage.removeItem('ck_users');
-      localStorage.removeItem('ck_activity_log');
-      localStorage.removeItem('ck_sent_messages');
-      localStorage.setItem('ck_cleanup_v1', 'true');
-      
-      // Force reload state to empty if they were just read
-      setMembers([]);
-      setOrganizations([]);
-      setTemplates([]);
-      setUsers([]);
-      setActivityLog([]);
-      setSentMessages([]);
+    // Guard Clause: If DB is not initialized (e.g. missing keys), do not attempt to connect.
+    if (!db) {
+      console.warn("Firestore not initialized. Skipping data listeners.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // 1. Members Listener
+      const unsubMembers = onSnapshot(collection(db, 'members'), (snapshot) => {
+        const ms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+        setMembers(ms);
+      }, (error) => console.error("Members Listener Error:", error));
+
+      // 2. Organizations Listener
+      const unsubOrgs = onSnapshot(collection(db, 'organizations'), (snapshot) => {
+        const orgs = snapshot.docs.map(doc => doc.data().name as string).sort();
+        setOrganizations(orgs);
+      }, (error) => console.error("Orgs Listener Error:", error));
+
+      // 3. Templates Listener
+      const unsubTemplates = onSnapshot(collection(db, 'templates'), (snapshot) => {
+        const ts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MessageTemplate));
+        setTemplates(ts);
+      }, (error) => console.error("Templates Listener Error:", error));
+
+      // 4. Sent Messages Listener
+      const qMessages = query(collection(db, 'sent_messages'), orderBy('timestamp', 'desc'));
+      const unsubMessages = onSnapshot(qMessages, (snapshot) => {
+        const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SentMessage));
+        setSentMessages(msgs);
+      }, (error) => console.error("Messages Listener Error:", error));
+
+      // 5. Activity Log Listener
+      const qLogs = query(collection(db, 'activity_logs'), orderBy('timestamp', 'desc'));
+      const unsubLogs = onSnapshot(qLogs, (snapshot) => {
+        const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ActivityLogEntry));
+        setActivityLog(logs);
+      }, (error) => console.error("Logs Listener Error:", error));
+
+      setLoading(false);
+
+      return () => {
+        unsubMembers();
+        unsubOrgs();
+        unsubTemplates();
+        unsubMessages();
+        unsubLogs();
+      };
+    } catch (err) {
+      console.error("Error setting up Firestore listeners:", err);
+      setLoading(false);
     }
   }, []);
 
-  // Initialize state from LocalStorage or Fallback (which is now empty)
-  const [members, setMembers] = useState<Member[]>(() => {
-    const saved = localStorage.getItem('ck_members');
-    return saved ? JSON.parse(saved) : INITIAL_MEMBERS;
-  });
-
-  const [organizations, setOrganizations] = useState<string[]>(() => {
-    const saved = localStorage.getItem('ck_organizations');
-    return saved ? JSON.parse(saved) : INITIAL_ORGS;
-  });
-
-  const [templates, setTemplates] = useState<MessageTemplate[]>(() => {
-    const saved = localStorage.getItem('ck_templates');
-    return saved ? JSON.parse(saved) : INITIAL_TEMPLATES;
-  });
-
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('ck_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
-  });
-
-  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>(() => {
-    const saved = localStorage.getItem('ck_activity_log');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [sentMessages, setSentMessages] = useState<SentMessage[]>(() => {
-    const saved = localStorage.getItem('ck_sent_messages');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Persistence Effects
-  useEffect(() => localStorage.setItem('ck_members', JSON.stringify(members)), [members]);
-  useEffect(() => localStorage.setItem('ck_organizations', JSON.stringify(organizations)), [organizations]);
-  useEffect(() => localStorage.setItem('ck_templates', JSON.stringify(templates)), [templates]);
-  useEffect(() => localStorage.setItem('ck_users', JSON.stringify(users)), [users]);
-  useEffect(() => localStorage.setItem('ck_activity_log', JSON.stringify(activityLog)), [activityLog]);
-  useEffect(() => localStorage.setItem('ck_sent_messages', JSON.stringify(sentMessages)), [sentMessages]);
-
   // Logger
-  const logActivity = (action: string, description: string) => {
-    const entry: ActivityLogEntry = {
-      id: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-      user: 'Admin User', // Hardcoded for simulation until Auth is real
-      action,
-      description
-    };
-    setActivityLog(prev => [entry, ...prev]);
+  const logActivity = async (action: string, description: string) => {
+    if (!db) return;
+    try {
+      await addDoc(collection(db, 'activity_logs'), {
+        timestamp: new Date().toISOString(),
+        user: 'Admin', // TODO: Fetch current auth user name
+        action,
+        description
+      });
+    } catch (e) {
+      console.error("Error logging activity", e);
+    }
   };
 
-  const addSentMessage = (msg: SentMessage) => {
-    setSentMessages(prev => [msg, ...prev]);
+  const addSentMessage = async (msg: SentMessage) => {
+    if (!db) return;
+    try {
+      await addDoc(collection(db, 'sent_messages'), msg);
+    } catch (e) {
+      console.error("Error saving sent message", e);
+    }
   };
 
   // Member Logic
-  const addMember = (member: Member) => {
+  const addMember = async (member: Member) => {
+    if (!db) { alert("Database not connected."); return; }
     const formattedMember = {
       ...member,
       name: formatProperCase(member.name),
       organization: formatProperCase(member.organization || ''),
     };
-    setMembers(prev => [formattedMember, ...prev]);
-    logActivity('Added Member', `Added new member: ${formattedMember.name}`);
+    const { id, ...data } = formattedMember;
+    
+    try {
+      await addDoc(collection(db, 'members'), data);
+      logActivity('Added Member', `Added new member: ${formattedMember.name}`);
+    } catch (e) {
+      console.error("Error adding member", e);
+    }
   };
 
-  const updateMember = (id: string, updates: Partial<Member>) => {
+  const updateMember = async (id: string, updates: Partial<Member>) => {
+    if (!db) return;
     let finalUpdates = { ...updates };
     if (updates.name) finalUpdates.name = formatProperCase(updates.name);
     if (updates.organization) finalUpdates.organization = formatProperCase(updates.organization);
     
-    setMembers(prev => prev.map(m => m.id === id ? { ...m, ...finalUpdates } : m));
-    logActivity('Updated Member', `Updated member details for ID: ${id}`);
+    try {
+      const memberRef = doc(db, 'members', id);
+      await updateDoc(memberRef, finalUpdates);
+      logActivity('Updated Member', `Updated member details for ID: ${id}`);
+    } catch (e) {
+      console.error("Error updating member", e);
+    }
   };
 
-  const deleteMember = (id: string) => {
+  const deleteMember = async (id: string) => {
+    if (!db) return;
     const member = members.find(m => m.id === id);
-    setMembers(prev => prev.filter(m => m.id !== id));
-    logActivity('Deleted Member', `Deleted member: ${member?.name || id}`);
+    try {
+      await deleteDoc(doc(db, 'members', id));
+      logActivity('Deleted Member', `Deleted member: ${member?.name || id}`);
+    } catch (e) {
+      console.error("Error deleting member", e);
+    }
   };
 
   const getMember = (id: string) => members.find(m => m.id === id);
 
   const importMembersFromCSV = (csvData: string) => {
+    if (!db) return { added: 0, failed: 0 };
     const lines = csvData.split(/\r?\n/);
     let addedCount = 0;
     let failedCount = 0;
 
-    const newMembers: Member[] = [];
-
-    // Skip header if present (simple check if first line contains 'name' or 'phone')
     const startIdx = lines[0].toLowerCase().includes('name') ? 1 : 0;
 
-    for (let i = startIdx; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
+    lines.slice(startIdx).forEach(async (line) => {
+        if (!line.trim()) return;
 
-        // Assumes format: Name, Phone, [Birthday], [Organization]
         const parts = line.split(',').map(p => p.trim());
         if (parts.length < 2) {
             failedCount++;
-            continue;
+            return;
         }
 
         const name = parts[0];
         const rawPhone = parts[1];
-        const birthday = parts[2] || '1990-01-01'; // Default or validate
+        const birthday = parts[2] || '1990-01-01';
         const org = parts[3] || '';
 
         const validPhone = validatePhoneNumber(rawPhone);
 
         if (name && validPhone) {
-            const member: Member = {
-                id: (Date.now() + i).toString(),
+            const memberData = {
                 name: formatProperCase(name),
                 phone: validPhone,
-                birthday: birthday, // Should ideally validate date format too
+                birthday: birthday,
                 organization: formatProperCase(org),
                 opt_in: true,
-                gender: 'Male' // Defaulting for bulk import simplicity
+                gender: 'Male' 
             };
-            newMembers.push(member);
-            addedCount++;
+            try {
+              await addDoc(collection(db, 'members'), memberData);
+              addedCount++;
+            } catch (e) {
+              failedCount++;
+            }
         } else {
             failedCount++;
         }
-    }
+    });
 
-    if (newMembers.length > 0) {
-        setMembers(prev => [...newMembers, ...prev]);
-        logActivity('Bulk Import', `Imported ${addedCount} members from CSV`);
-    }
-
+    logActivity('Bulk Import', `Initiated import from CSV`);
     return { added: addedCount, failed: failedCount };
   };
 
   // Organization Logic
-  const addOrganization = (name: string) => {
+  const addOrganization = async (name: string) => {
+    if (!db) return;
     const fmt = formatProperCase(name);
     if (!organizations.includes(fmt)) {
-      setOrganizations(prev => [...prev, fmt]);
-      logActivity('Added Organization', `Created organization: ${fmt}`);
+      try {
+        await setDoc(doc(db, 'organizations', fmt), { name: fmt });
+        logActivity('Added Organization', `Created organization: ${fmt}`);
+      } catch (e) { console.error(e); }
     }
   };
 
-  const updateOrganization = (oldName: string, newName: string) => {
+  const updateOrganization = async (oldName: string, newName: string) => {
+    if (!db) return;
     const fmt = formatProperCase(newName);
     if (!organizations.includes(fmt)) {
-      setOrganizations(prev => prev.map(o => o === oldName ? fmt : o));
-      // Also update members associated with this org
-      setMembers(prev => prev.map(m => m.organization === oldName ? { ...m, organization: fmt } : m));
-      logActivity('Updated Organization', `Renamed ${oldName} to ${fmt}`);
+       try {
+         await setDoc(doc(db, 'organizations', fmt), { name: fmt });
+         await deleteDoc(doc(db, 'organizations', oldName));
+         logActivity('Updated Organization', `Renamed ${oldName} to ${fmt}`);
+       } catch (e) { console.error(e); }
     }
   };
 
-  const deleteOrganization = (name: string) => {
-    setOrganizations(prev => prev.filter(o => o !== name));
-    logActivity('Deleted Organization', `Removed organization: ${name}`);
+  const deleteOrganization = async (name: string) => {
+    if (!db) return;
+    try {
+      await deleteDoc(doc(db, 'organizations', name));
+      logActivity('Deleted Organization', `Removed organization: ${name}`);
+    } catch (e) { console.error(e); }
   };
 
   // Template Logic
-  const addTemplate = (template: MessageTemplate) => {
-    setTemplates(prev => [...prev, template]);
-    logActivity('Added Template', `Created template: ${template.title}`);
+  const addTemplate = async (template: MessageTemplate) => {
+    if (!db) return;
+    const { id, ...data } = template;
+    try {
+      await addDoc(collection(db, 'templates'), data);
+      logActivity('Added Template', `Created template: ${template.title}`);
+    } catch (e) { console.error(e); }
   };
 
-  const deleteTemplate = (id: string) => {
-    setTemplates(prev => prev.filter(t => t.id !== id));
-    logActivity('Deleted Template', `Deleted template ID: ${id}`);
+  const deleteTemplate = async (id: string) => {
+    if (!db) return;
+    try {
+      await deleteDoc(doc(db, 'templates', id));
+      logActivity('Deleted Template', `Deleted template ID: ${id}`);
+    } catch (e) { console.error(e); }
   };
 
-  // User Logic
   const deleteUser = (id: string) => {
-    setUsers(prev => prev.filter(u => u.id !== id));
-    logActivity('Deleted User', `Removed user account ID: ${id}`);
+    console.log("Delete user request", id);
   };
 
   return (

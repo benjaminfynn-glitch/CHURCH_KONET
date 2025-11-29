@@ -1,11 +1,21 @@
 import { GoogleGenAI } from "@google/genai";
 
 // Initialize the client with the API key from environment variables
-// Note: In a production client-side app, you might proxy this through your own backend,
-// but for this specific request context using process.env.API_KEY is correct.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Using process.env.API_KEY which is polyfilled in vite.config.ts
+const apiKey = process.env.API_KEY;
+
+let ai: GoogleGenAI | null = null;
+if (apiKey) {
+  ai = new GoogleGenAI({ apiKey });
+} else {
+  console.warn("Gemini API Key missing. AI features will be disabled.");
+}
 
 export const generateSMSDraft = async (topic: string, tone: 'formal' | 'casual' | 'urgent'): Promise<string> => {
+  if (!ai) {
+    throw new Error("AI Service not initialized (Missing API Key)");
+  }
+  
   try {
     const prompt = `
       Write a short, clear, and engaging SMS broadcast message for a church congregation.

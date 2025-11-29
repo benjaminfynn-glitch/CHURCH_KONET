@@ -1,9 +1,18 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  User as FirebaseUser,
+  updateProfile
+} from 'firebase/auth';
+import { auth } from '../services/firebase';
 
 interface User {
   name: string;
   email: string;
+  uid: string;
 }
 
 interface AuthContextType {
@@ -22,51 +31,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for persistence
-    const saved = localStorage.getItem('ck_auth_user');
-    if (saved) {
-      try {
-        setUser(JSON.parse(saved));
-      } catch (e) {
-        localStorage.removeItem('ck_auth_user');
-      }
+    if (!auth) {
+      console.warn("Auth not initialized. Skipping auth listeners.");
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser({
+          uid: currentUser.uid,
+          email: currentUser.email || '',
+          name: currentUser.displayName || 'User'
+        });
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Basic validation simulation (Accept any non-empty credentials for demo)
-    if (email && password) {
-      // In a real app, you would fetch the user profile here.
-      // For demo, we default to "Administrator" if no name is known, 
-      // or we could look up if we had a stored user list.
-      const mockUser = { name: 'Administrator', email };
-      setUser(mockUser);
-      localStorage.setItem('ck_auth_user', JSON.stringify(mockUser));
-      return true;
+    if (!auth) {
+      alert("Authentication service unavailable.");
+      return false;
     }
-    return false;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      return true;
+    } catch (error) {
+      console.error("Login failed:", error);
+      return false;
+    }
   };
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    if (name && email && password) {
-      const newUser = { name, email };
-      setUser(newUser);
-      localStorage.setItem('ck_auth_user', JSON.stringify(newUser));
-      return true;
+    if (!auth) {
+      alert("Authentication service unavailable.");
+      return false;
     }
-    return false;
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Update display name
+      await updateProfile(userCredential.user, {
+        displayName: name
+      });
+      // Force update local state to reflect name immediately
+      setUser({
+        uid: userCredential.user.uid,
+        email: email,
+        name: name
+      });
+      return true;
+    } catch (error) {
+      console.error("Signup failed:", error);
+      return false;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('ck_auth_user');
+  const logout = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error("Logout error", error);
+    }
   };
 
   return (
