@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { VolumeChart, DeliveryChart, PersonalizationChart, BirthdayDistributionChart } from '../components/DashboardStats';
 import { useSettings } from '../context/SettingsContext';
 import { useMembers } from '../context/MembersContext';
+import { useAuth } from '../context/AuthContext';
 import { SentMessage, Member } from '../types';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { theme, birthdaySettings } = useSettings();
   const { members, organizations, activityLog, sentMessages } = useMembers();
+  const { logout } = useAuth();
 
   // State for Duplicate Birthday Check
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
@@ -124,6 +126,11 @@ const Dashboard: React.FC = () => {
   const handleChartClick = (monthIndex: number) => {
       navigate('/members', { state: { filterMonth: monthIndex } });
   };
+  
+  const handleLogout = () => {
+      logout();
+      navigate('/login');
+  };
 
   const recentLogs = activityLog.slice(0, 5);
 
@@ -135,9 +142,20 @@ const Dashboard: React.FC = () => {
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Overview of church engagement and messaging.</p>
         </div>
-        <div className="text-right bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">SMS Credits</p>
-           <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">GHS 1,042.50</p>
+        <div className="flex items-center gap-3">
+            <div className="text-right bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">SMS Credits</p>
+               <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">GHS 1,042.50</p>
+            </div>
+            
+            <button 
+                onClick={handleLogout}
+                className="h-full px-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex flex-col justify-center items-center gap-1 group"
+                title="Log Out"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span className="text-[10px] font-bold uppercase hidden md:block group-hover:underline">Logout</span>
+            </button>
         </div>
       </div>
 

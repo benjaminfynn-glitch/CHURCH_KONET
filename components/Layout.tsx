@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 
 // Simple SVG Icons
 const Icons = {
@@ -12,12 +13,15 @@ const Icons = {
   Menu: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>,
   ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
   ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+  Logout: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>,
 };
 
 const Layout: React.FC = () => {
   const { sidebarCollapsed, toggleSidebar } = useSettings();
+  const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -31,56 +35,114 @@ const Layout: React.FC = () => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: <Icons.Dashboard /> },
+    { name: 'Dashboard', path: '/dashboard', icon: <Icons.Dashboard /> },
     { name: 'Broadcast', path: '/broadcast', icon: <Icons.Broadcast /> },
     { name: 'Members', path: '/members', icon: <Icons.Members /> },
     { name: 'Settings', path: '/settings', icon: <Icons.Settings /> },
   ];
 
-  const MobileSidebarContent = () => (
-    <>
-      <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-        <h1 className="font-bold text-indigo-600 dark:text-indigo-400 tracking-tight flex items-center gap-2 text-xl">
-          <span>⛪</span>
-          <span>CHURCH KONET</span>
-        </h1>
-      </div>
-
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 group relative
-               ${isActive
-                  ? 'bg-indigo-50 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 border-l-4 border-indigo-600 dark:border-indigo-400'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200 border-l-4 border-transparent'
-               }
-              `
+  const SidebarContent = ({ isMobile = false }) => (
+    <div className="flex flex-col h-full overflow-hidden">
+       <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center h-[73px] whitespace-nowrap overflow-hidden">
+         <span className="text-2xl mr-3 min-w-[24px]">⛪</span>
+         
+         <h1 className={`
+            font-bold text-indigo-600 dark:text-indigo-400 tracking-tight text-xl transition-all duration-300
+            ${!isMobile && sidebarCollapsed 
+              ? 'lg:opacity-0 lg:w-0 lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:w-0' 
+              : 'lg:opacity-100 lg:w-auto'
             }
+            md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto
+         `}>
+           CHURCH KONET
+         </h1>
+       </div>
+
+       <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap
+                 ${isActive
+                    ? 'bg-indigo-50 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 border-l-4 border-indigo-600 dark:border-indigo-400'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200 border-l-4 border-transparent'
+                 }
+                `
+              }
+            >
+              <span className="min-w-[24px] flex justify-center">
+                {item.icon}
+              </span>
+              
+              <span className={`
+                ml-3 transition-all duration-300
+                ${!isMobile && sidebarCollapsed 
+                    ? 'lg:opacity-0 lg:translate-x-[-10px] lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:translate-x-[-10px]' 
+                    : 'lg:opacity-100 lg:translate-x-0'
+                }
+                md:opacity-0 md:translate-x-[-10px] md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:translate-x-0
+              `}>
+                {item.name}
+              </span>
+            </NavLink>
+          ))}
+       </nav>
+
+       {!isMobile && (
+        <div className="hidden lg:flex p-4 border-t border-slate-100 dark:border-slate-700 justify-end">
+          <button 
+            onClick={toggleSidebar}
+            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+            aria-label={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            <span className="text-lg">
-              {item.icon}
-            </span>
-            <span>
-              {item.name}
-            </span>
-          </NavLink>
-        ))}
-      </nav>
-      
-      <div className="p-4 border-t border-slate-100 dark:border-slate-700">
-        <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-700">
-          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">System Status</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">Online</span>
-          </div>
+            {sidebarCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronLeft />}
+          </button>
         </div>
-      </div>
-    </>
+       )}
+       
+       <div className={`
+         p-4 border-t border-slate-100 dark:border-slate-700 overflow-hidden whitespace-nowrap transition-all duration-300
+         ${!isMobile && sidebarCollapsed 
+           ? 'lg:h-0 lg:p-0 lg:group-hover/sidebar:h-0 lg:group-hover/sidebar:p-0 lg:border-none' 
+           : 'lg:h-auto'
+         }
+         md:h-0 md:p-0 md:group-hover/sidebar:h-auto md:group-hover/sidebar:p-4
+       `}>
+         <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-700 space-y-3">
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">System Status</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">Online</span>
+              </div>
+            </div>
+            
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+               <div className="flex items-center gap-2 mb-2">
+                 <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                    {user?.name?.charAt(0) || 'A'}
+                 </div>
+                 <p className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">{user?.name || 'User'}</p>
+               </div>
+               <button 
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded transition-colors"
+               >
+                 <Icons.Logout />
+                 <span>Sign Out</span>
+               </button>
+            </div>
+         </div>
+       </div>
+    </div>
   );
 
   return (
@@ -98,7 +160,7 @@ const Layout: React.FC = () => {
         fixed inset-y-0 left-0 z-50 w-3/4 max-w-xs bg-white dark:bg-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-         <MobileSidebarContent />
+         <SidebarContent isMobile={true} />
       </div>
 
       <aside 
@@ -112,81 +174,7 @@ const Layout: React.FC = () => {
           md:w-20 md:hover:w-64
         `}
       >
-        <div className="flex flex-col h-full overflow-hidden">
-           <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center h-[73px] whitespace-nowrap overflow-hidden">
-             <span className="text-2xl mr-3 min-w-[24px]">⛪</span>
-             
-             <h1 className={`
-                font-bold text-indigo-600 dark:text-indigo-400 tracking-tight text-xl transition-all duration-300
-                ${sidebarCollapsed 
-                  ? 'lg:opacity-0 lg:w-0 lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:w-0' 
-                  : 'lg:opacity-100 lg:w-auto'
-                }
-                md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto
-             `}>
-               CHURCH KONET
-             </h1>
-           </div>
-
-           <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap
-                     ${isActive
-                        ? 'bg-indigo-50 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 border-l-4 border-indigo-600 dark:border-indigo-400'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200 border-l-4 border-transparent'
-                     }
-                    `
-                  }
-                >
-                  <span className="min-w-[24px] flex justify-center">
-                    {item.icon}
-                  </span>
-                  
-                  <span className={`
-                    ml-3 transition-all duration-300
-                    ${sidebarCollapsed 
-                        ? 'lg:opacity-0 lg:translate-x-[-10px] lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:translate-x-[-10px]' 
-                        : 'lg:opacity-100 lg:translate-x-0'
-                    }
-                    md:opacity-0 md:translate-x-[-10px] md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:translate-x-0
-                  `}>
-                    {item.name}
-                  </span>
-                </NavLink>
-              ))}
-           </nav>
-
-           <div className="hidden lg:flex p-4 border-t border-slate-100 dark:border-slate-700 justify-end">
-              <button 
-                onClick={toggleSidebar}
-                className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                aria-label={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-              >
-                {sidebarCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronLeft />}
-              </button>
-           </div>
-           
-           <div className={`
-             p-4 border-t border-slate-100 dark:border-slate-700 overflow-hidden whitespace-nowrap transition-all duration-300
-             ${sidebarCollapsed 
-               ? 'lg:h-0 lg:p-0 lg:group-hover/sidebar:h-0 lg:group-hover/sidebar:p-0 lg:border-none' 
-               : 'lg:h-auto'
-             }
-             md:h-0 md:p-0 md:group-hover/sidebar:h-auto md:group-hover/sidebar:p-4
-           `}>
-             <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-700">
-                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">System Status</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                  <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">Online</span>
-                </div>
-             </div>
-           </div>
-        </div>
+        <SidebarContent />
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50 dark:bg-slate-900">
