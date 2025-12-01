@@ -1,59 +1,56 @@
-export default async function handler(req: any, res: any) {
-  // Handle CORS preflight or other methods
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+type VercelRequest = any;
+type VercelResponse = any;
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
 
   try {
-    const { text, type, sender, destinations, schedule } = req.body;
-    const apiKey = process.env.SMSONLINE_API_KEY;
+    const { text, destinations, sender } = req.body;
 
-    if (!apiKey) {
-      console.error("Missing SMSONLINE_API_KEY environment variable");
-      return res.status(500).json({ message: 'Server Configuration Error: Missing API Key' });
-    }
+    if (!text) return res.status(400).json({ message: 'text is required' });
+    if (!Array.isArray(destinations) || destinations.length === 0)
+      return res.status(400).json({ message: 'destinations[] is required' });
 
-    // Construct Payload for SMSOnlineGH
-    const smsPayload: any = {
+    const apiKey = process.env.SMSONLINEGH_API_KEY;
+    const finalSender = sender || process.env.SMSONLINEGH_SENDER_ID;
+
+    if (!apiKey || !finalSender)
+      return res.status(500).json({ message: 'Missing API key or Sender ID' });
+
+    const payload = {
       text,
-      type,
-      sender,
-      destinations
+      type: 0, // BROADCAST SMS
+      sender: finalSender,
+      destinations, // array of phone numbers (strings)
     };
-
-    if (schedule) {
-      smsPayload.schedule = schedule;
-    }
 
     const response = await fetch('https://api.smsonlinegh.com/v5/message/sms/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `key ${apiKey}`
+        'Authorization': `key ${apiKey}`,
       },
-      body: JSON.stringify(smsPayload)
+      body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+    const json = await response.json();
 
-    // Strict Handshake Validation as per requirements
-    // handshake.id must be 0 and label must be "HSHK_OK"
-    if (data.handshake && data.handshake.id === 0 && data.handshake.label === "HSHK_OK") {
-      return res.status(200).json(data);
-    } else {
-      console.error("SMS Gateway Error:", JSON.stringify(data));
-      return res.status(400).json({ 
-        message: data.handshake?.error || 'SMS Gateway Handshake Failed',
-        handshake: data.handshake 
+    // Validate handshake (required to ensure send was accepted)
+    if (!json?.handshake || json.handshake.id !== 0 || json.handshake.label !== 'HSHK_OK') {
+      return res.status(502).json({
+        message: 'SMS provider rejected broadcast',
+        provider: json,
       });
     }
-  } catch (error: any) {
-    console.error("Broadcast API Error:", error);
-    return res.status(500).json({ message: 'Internal Server Error', error: error.message });
+
+    return res.status(200).json({
+      success: true,
+      provider: json.data,
+      count: destinations.length,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ message: 'Internal Server Error', error: String(err) });
   }
 }

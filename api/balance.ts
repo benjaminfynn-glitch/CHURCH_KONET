@@ -1,39 +1,39 @@
-export default async function handler(req: any, res: any) {
+// /api/balance.ts
+type Req = any;
+type Res = any;
+
+export default async function handler(req: Req, res: Res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
+    return res.status(405).json({ error: 'Only GET allowed' });
   }
 
   try {
-    const apiKey = process.env.SMSONLINE_API_KEY;
-
+    const apiKey = process.env.SMSONLINEGH_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ message: 'Server Configuration Error: Missing API Key' });
+      return res.status(500).json({ error: 'Missing API key in environment' });
     }
 
     const response = await fetch('https://api.smsonlinegh.com/v5/account/balance', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `key ${apiKey}`
+        'Authorization': `key ${apiKey}`, // MUST include "key "
       }
     });
 
-    if (!response.ok) {
-        throw new Error(`Upstream Error: ${response.status}`);
-    }
+    const json = await response.json();
 
-    const data = await response.json();
-
-    if (data.handshake && data.handshake.id === 0) {
-      // Map API response to Frontend Type: BalanceResponse
-      return res.status(200).json({
-        balance: data.data?.balance || 0,
-        currency: data.data?.currency || 'GHS'
+    // Required handshake validation
+    if (!json?.handshake || json.handshake.id !== 0 || json.handshake.label !== 'HSHK_OK') {
+      return res.status(502).json({
+        error: 'Provider rejected balance request',
+        details: json
       });
-    } else {
-      return res.status(502).json({ message: 'Failed to retrieve balance from gateway' });
     }
-  } catch (error: any) {
-    return res.status(500).json({ message: 'Internal Server Error', error: error.message });
+
+    // Return the account balance
+    return res.status(200).json(json.data);
+  } catch (err: any) {
+    return res.status(500).json({ error: String(err) });
   }
 }
