@@ -7,7 +7,7 @@ import {
   User as FirebaseUser,
   updateProfile
 } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { auth } from '../firebase';
 
 interface User {
   name: string;

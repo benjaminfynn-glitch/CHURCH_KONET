@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Member, User, ActivityLogEntry, MessageTemplate, SentMessage } from '../types';
 import { validatePhoneNumber } from '../services/smsUtils';
-import { db } from '../services/firebase';
+import { db } from '../firebase';
 import { 
   collection, 
   addDoc, 
