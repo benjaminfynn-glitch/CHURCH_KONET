@@ -3,15 +3,23 @@ import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
+// These MUST come from Vercel Environment Variables
 const firebaseConfig = {
-  apiKey: "AIzaSyDuG16WHQCFJ1cQR9dpPFwrSWFLQkc6LE",
-  authDomain: "church-konet.firebaseapp.com",
-  projectId: "church-konet",
-  storageBucket: "church-konet.firebasestorage.app",
-  messagingSenderId: "317305373118",
-  appId: "1:317305373118:web:5c8c7e66a30dffa367b9ef",
-  measurementId: "G-F7TYLTETG3",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
+
+// Safety check (helps debug on Vercel)
+if (!firebaseConfig.apiKey) {
+  console.warn(
+    "⚠️ Firebase configuration missing. Check Vercel Environment Variables."
+  );
+}
 
 // Prevent double initialization
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
