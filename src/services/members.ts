@@ -1,6 +1,6 @@
 // src/services/members.ts
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase'; // adjust path if your firebase.ts is in a different place
+import { db } from '../firebase'; // adjust path if your firebase.ts is in a different place
 import { normalizeName } from '../utils/format';
 import { parseDOB } from '../utils/date';
 

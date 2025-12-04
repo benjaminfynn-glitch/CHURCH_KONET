@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { addMember } from '../src/services/members';
+import { addMember } from '../services/members';
 
 export default function AddMemberForm() {
   const [fullName, setFullName] = useState('');

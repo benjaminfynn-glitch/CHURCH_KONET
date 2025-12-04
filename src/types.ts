@@ -1,14 +1,16 @@
-
+// types.ts
 export interface Member {
-  id: string;
-  name: string;
-  phone: string;
-  birthday: string; // YYYY-MM-DD
+  id?: string;
+  memberCode?: string;
+  fullName?: string;
   gender?: string;
+  phone?: string;
+  birthday?: string; // YYYY-MM-DD
   organization?: string;
   notes?: string;
-  sender_name?: string;
-  opt_in: boolean;
+  opt_in?: boolean;
+  createdAt?: number | null;
+  updatedAt?: number | null;
 }
 
 export enum MessageType {
@@ -16,7 +18,6 @@ export enum MessageType {
   Flash = 1,
 }
 
-// SMSOnlineGH Payload Structures
 export interface SMSDestinationPersonalized {
   number: string;
   values: string[];
@@ -62,16 +63,14 @@ export interface SMSLog {
   timestamp: string;
   message: string;
   senderId: string;
-  status: 'Delivered' | 'Failed' | 'Sent' | 'Scheduled';
+  status: "Delivered" | "Failed" | "Sent" | "Scheduled";
 }
-
-// --- NEW TYPES FOR SETTINGS & DATA ---
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'Admin' | 'Editor' | 'Viewer';
+  role: "Admin" | "Editor" | "Viewer";
   dateCreated: string;
 }
 
@@ -89,9 +88,9 @@ export interface MessageTemplate {
   content: string;
 }
 
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = "light" | "dark";
 
-export type BirthdayPeriod = 'week' | 'month' | 'quarter' | 'year' | 'custom';
+export type BirthdayPeriod = "week" | "month" | "quarter" | "year" | "custom";
 
 export interface BirthdaySettings {
   period: BirthdayPeriod;
@@ -108,6 +107,6 @@ export interface SentMessage {
   recipientPhone: string;
   content: string;
   timestamp: string;
-  type: 'birthday' | 'general';
-  status: 'Sent' | 'Delivered' | 'Failed';
+  type: "birthday" | "general";
+  status: "Sent" | "Delivered" | "Failed";
 }

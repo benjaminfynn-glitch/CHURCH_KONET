@@ -1,0 +1,176 @@
+// components/MemberFormModal.tsx
+import React, { useEffect, useState } from "react";
+import { Member } from "../types";
+import { useMembers } from "../context/MembersContext";
+import { validatePhoneNumber } from "../services/smsUtils";
+
+type Props = {
+  open: boolean;
+  initial?: Partial<Member> | null;
+  onClose: () => void;
+  onSaved?: () => void;
+};
+
+const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSaved }) => {
+  const { addMember, updateMember, organizations } = useMembers();
+
+  // Use fullName consistently
+  const [form, setForm] = useState<Partial<Member>>({
+    fullName: "",
+    phone: "",
+    birthday: "",
+    gender: "",
+    organization: "",
+    notes: "",
+    opt_in: true,
+  });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (initial) {
+      setForm({
+        fullName: initial.fullName ?? initial.name ?? "",
+        phone: initial.phone ?? "",
+        birthday: initial.birthday ?? "",
+        gender: initial.gender ?? "",
+        organization: initial.organization ?? "",
+        notes: initial.notes ?? "",
+        opt_in: typeof initial.opt_in === "boolean" ? initial.opt_in : true,
+      });
+    } else {
+      setForm({
+        fullName: "",
+        phone: "",
+        birthday: "",
+        gender: "",
+        organization: "",
+        notes: "",
+        opt_in: true,
+      });
+    }
+  }, [open, initial]);
+
+  const handleSave = async () => {
+    // basic validation
+    if (!form.fullName || !form.phone || !form.birthday) {
+      alert("Please fill in required fields (Full name, Phone, Birthday).");
+      return;
+    }
+    const phone = validatePhoneNumber(form.phone || "");
+    if (!phone) {
+      alert("Invalid phone number format.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      if (initial && initial.id) {
+        await updateMember(initial.id, { ...form, phone });
+      } else {
+        await addMember({ ...form, phone });
+      }
+      onSaved && onSaved();
+      onClose();
+    } catch (e) {
+      console.error("Save error", e);
+      alert("Failed to save member. See console.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-2xl shadow-lg overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b dark:border-slate-700">
+          <h3 className="text-lg font-bold">{initial ? "Edit Member" : "Add Member"}</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-700">Close</button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium">Full Name *</label>
+            <input
+              value={form.fullName || ""}
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              className="w-full px-3 py-2 border rounded"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Phone *</label>
+            <input
+              value={form.phone || ""}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="w-full px-3 py-2 border rounded font-mono"
+              placeholder="233xxxxxxxxx"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium">Birthday *</label>
+              <input
+                type="date"
+                value={form.birthday || ""}
+                onChange={(e) => setForm({ ...form, birthday: e.target.value })}
+                className="w-full px-3 py-2 border rounded"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium">Gender</label>
+              <select
+                value={form.gender || ""}
+                onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                className="w-full px-3 py-2 border rounded"
+              >
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Organization</label>
+            <select
+              value={form.organization || ""}
+              onChange={(e) => setForm({ ...form, organization: e.target.value })}
+              className="w-full px-3 py-2 border rounded"
+            >
+              <option value="">-- none --</option>
+              {organizations.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Notes</label>
+            <textarea
+              value={form.notes || ""}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              className="w-full px-3 py-2 border rounded"
+              rows={3}
+            />
+          </div>
+        </div>
+
+        <div className="p-4 border-t dark:border-slate-700 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-100 rounded">Cancel</button>
+          <button onClick={handleSave} disabled={busy} className="px-4 py-2 bg-sky-600 text-white rounded">
+            {busy ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MemberFormModal;
