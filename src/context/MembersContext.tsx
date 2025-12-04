@@ -216,8 +216,11 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const addMember = async (memberPartial: Partial<Member>) => {
     if (!db) throw new Error("Database not initialized");
 
+    console.log("🔵 Starting addMember...", { user: user?.email, authenticated: !!user });
+
     try {
       const memberCode = await generateMemberCode();
+      console.log("✅ Member code generated:", memberCode);
 
       const payload: any = {
         memberCode,
@@ -235,13 +238,26 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // remove undefined
       Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
+      console.log("📝 Attempting to write to Firestore:", payload);
       const docRef = await addDoc(collection(db, "members"), cleanForFirestore(payload));
+      console.log("✅ Document created with ID:", docRef.id);
+      
       // update local state optimistically
       setMembers((prev) => [{ id: docRef.id, ...payload }, ...prev]);
       await logActivity("Add Member", `Added ${payload.fullName}`);
       return docRef.id;
-    } catch (e) {
-      console.error("addMember error", e);
+    } catch (e: any) {
+      console.error("❌ addMember error:", e);
+      console.error("Error code:", e.code);
+      console.error("Error message:", e.message);
+      console.error("Full error:", JSON.stringify(e, null, 2));
+      
+      // Provide helpful error messages
+      if (e.code === "permission-denied") {
+        throw new Error("Permission denied: Check Firestore security rules. You may need to configure rules to allow writes.");
+      } else if (e.code === "unauthenticated") {
+        throw new Error("Not authenticated: Please log in first.");
+      }
       throw e;
     }
   };
