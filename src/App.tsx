@@ -9,6 +9,7 @@ import MemberProfile from './pages/MemberProfile';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Welcome from './pages/Welcome';
+import PostLoginWelcome from './pages/PostLoginWelcome';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ToastProvider } from './context/ToastContext';
 import { MembersProvider } from './context/MembersContext';
@@ -26,6 +27,13 @@ const App: React.FC = () => {
                 {/* Public Routes */}
                 <Route path="/" element={<Welcome />} />
                 <Route path="/login" element={<Login />} />
+                
+                {/* Post-Login Welcome Page (Protected but without Layout) */}
+                <Route path="/welcome" element={
+                  <ProtectedRoute>
+                    <PostLoginWelcome />
+                  </ProtectedRoute>
+                } />
                 
                 {/* Protected Routes - Wrapped in Layout */}
                 <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>

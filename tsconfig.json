@@ -18,5 +18,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src", "src/pages/AddMemberForm.tsx", "src/services/smsApi.ts", "src/services/membersrc/components/MemberFormModal.tsxodalsrc/components/MembersTable.tsxasrc/utilsc/hooks, "hooks", "utils", "env.d.ts"]
+  "include": ["src", "env.d.ts"]
 }
