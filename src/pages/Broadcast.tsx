@@ -50,7 +50,7 @@ const Broadcast: React.FC = () => {
   // Check for navigation state (e.g. from Dashboard Birthday Widget)
   useEffect(() => {
     if (location.state) {
-        const { recipientId, initialMessage, isBirthday, isResend } = location.state as { recipientId?: string, initialMessage?: string, isBirthday?: boolean, isResend?: boolean };
+        const { recipientId, initialMessage, isBirthday, isResend } = location.state;
         
         if (recipientId) {
             setDestinationMode('individual');
@@ -73,24 +73,24 @@ const Broadcast: React.FC = () => {
   const filteredMembers = useMemo(() => {
     if (!searchQuery) return members;
     const lower = searchQuery.toLowerCase();
-    return members.filter(m => m.name.toLowerCase().includes(lower) || m.phone.includes(lower));
+    return members.filter(m => m.fullName?.toLowerCase().includes(lower) || m.phone.includes(lower));
   }, [searchQuery, members]);
 
   // Derived Data for 'All' mode: Unique List
   const uniqueRecipientsList = useMemo(() => {
       if (destinationMode !== 'all') return [];
       const seen = new Set<string>();
-      const list: { id: string, name: string, phone: string }[] = [];
+      const list: { id: string, fullName: string, phone: string }[] = [];
       
       // Filter for unique phones, prioritizing existing member order
       members.forEach(m => {
           if (!seen.has(m.phone)) {
               seen.add(m.phone);
-              list.push({ id: m.id, name: m.name, phone: m.phone });
+              list.push({ id: m.id, fullName: m.fullName, phone: m.phone });
           }
       });
       // Sort alphabetically for display
-      return list.sort((a, b) => a.name.localeCompare(b.name));
+      return list.sort((a, b) => a.fullName.localeCompare(b.fullName));
   }, [members, destinationMode]);
 
   // Calculate Cost using utility
@@ -230,7 +230,7 @@ const Broadcast: React.FC = () => {
       // Each entry needs specific values (name)
       destinations = targets.map(m => ({
         number: m.phone,
-        values: [m.name.split(' ')[0]] // First name only
+        values: [m.fullName?.split(' ')[0]] // First name only
       }));
     } else {
       // NON-PERSONALIZED / GENERAL BROADCAST: Remove duplicate phone numbers
@@ -262,12 +262,12 @@ const Broadcast: React.FC = () => {
       // For logging history, we still want to log against the member ID, 
       // even if the physical SMS was de-duplicated.
       targets.forEach(member => {
-         const finalContent = isPersonalized ? messageText.replace('{$name}', member.name.split(' ')[0]) : messageText;
+         const finalContent = isPersonalized ? messageText.replace('{$name}', member.fullName?.split(' ')[0]) : messageText;
          
          const logEntry: SentMessage = {
              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
              memberId: member.id,
-             recipientName: member.name,
+             recipientName: member.fullName,
              recipientPhone: member.phone,
              content: finalContent,
              timestamp: timestamp,
@@ -279,9 +279,9 @@ const Broadcast: React.FC = () => {
 
       if (isBirthdayFlow) {
           if (isResendFlow) {
-            logActivity('Birthday Message Resent', `Resent birthday wish to ${targets.map(t => t.name).join(', ')}`);
+            logActivity('Birthday Message Resent', `Resent birthday wish to ${targets.map(t => t.fullName).join(', ')}`);
           } else {
-            logActivity('Birthday Message Sent', `Sent birthday wish to ${targets.map(t => t.name).join(', ')}`);
+            logActivity('Birthday Message Sent', `Sent birthday wish to ${targets.map(t => t.fullName).join(', ')}`);
           }
       } else {
           // More descriptive log for All Members
@@ -531,7 +531,7 @@ const Broadcast: React.FC = () => {
                           className={`p-3 border-b border-slate-100 dark:border-slate-700 cursor-pointer flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 ${selectedMembers.includes(member.id) ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}
                         >
                            <div>
-                             <p className="text-sm font-medium text-slate-900 dark:text-white">{member.name}</p>
+                             <p className="text-sm font-medium text-slate-900 dark:text-white">{member.fullName}</p>
                              <p className="text-xs text-slate-500 dark:text-slate-400">{member.phone}</p>
                            </div>
                            <div className={`w-5 h-5 rounded border flex items-center justify-center ${selectedMembers.includes(member.id) ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-600'}`}>
@@ -571,7 +571,7 @@ const Broadcast: React.FC = () => {
                           <div className="flex-1 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800">
                               {uniqueRecipientsList.map((recipient) => (
                                   <div key={recipient.id} className="flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{recipient.name}</span>
+                                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{recipient.fullName}</span>
                                       <span className="text-xs font-mono text-slate-500">{recipient.phone}</span>
                                   </div>
                               ))}
@@ -711,8 +711,8 @@ const Broadcast: React.FC = () => {
                               if (!member) return null;
                               return (
                                   <div key={id} className="bg-slate-50 dark:bg-slate-700 p-3 rounded-lg border border-slate-200 dark:border-slate-600 text-sm">
-                                      <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold mb-1">To: {member.name}</p>
-                                      <p className="text-slate-700 dark:text-slate-200 font-mono whitespace-pre-wrap">{resolveMessagePreview(member.name)}</p>
+                                      <p className="text-xs text-indigo-600 dark:text-indigo-400 font-bold mb-1">To: {member.fullName}</p>
+                                      <p className="text-slate-700 dark:text-slate-200 font-mono whitespace-pre-wrap">{resolveMessagePreview(member.fullName)}</p>
                                   </div>
                               );
                           })}

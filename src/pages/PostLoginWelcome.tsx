@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -6,12 +6,24 @@ const PostLoginWelcome: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Redirect to login if user data is not available
+    if (!user) {
+      navigate('/login'); // Or your designated login route
+    }
+  }, [user, navigate]);
+
   // Fallback to 'User' if name is not available
-  const userName = user?.name || 'User';
+  const userName = user?.fullName || 'User';
 
   const handleContinueToDashboard = () => {
     navigate('/dashboard');
   };
+
+  // Don't render the component until the user check is complete
+  if (!user) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 flex items-center justify-center p-4 transition-colors duration-200">
@@ -25,7 +37,7 @@ const PostLoginWelcome: React.FC = () => {
             
             <div className="relative text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm text-5xl mb-6 shadow-lg animate-in zoom-in duration-700 delay-100">
-                ⛪
+                <span aria-hidden="true">⛪</span>
               </div>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-3 animate-in slide-in-from-bottom-4 duration-700 delay-200">
                 Welcome {userName} to Church Konet
@@ -50,7 +62,7 @@ const PostLoginWelcome: React.FC = () => {
                 to="/dashboard"
                 className="group p-6 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border-2 border-slate-100 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-lg transition-all duration-300"
               >
-                <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">📊</div>
+                <div aria-hidden="true" className="text-4xl mb-3 group-hover:scale-110 transition-transform">📊</div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Dashboard</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">View statistics and insights</p>
               </Link>
@@ -59,7 +71,7 @@ const PostLoginWelcome: React.FC = () => {
                 to="/members"
                 className="group p-6 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border-2 border-slate-100 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-lg transition-all duration-300"
               >
-                <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">👥</div>
+                <div aria-hidden="true" className="text-4xl mb-3 group-hover:scale-110 transition-transform">👥</div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Members</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Manage your congregation</p>
               </Link>
@@ -68,7 +80,7 @@ const PostLoginWelcome: React.FC = () => {
                 to="/broadcast"
                 className="group p-6 bg-slate-50 dark:bg-slate-700/50 rounded-2xl border-2 border-slate-100 dark:border-slate-600 hover:border-indigo-300 dark:hover:border-indigo-500 hover:shadow-lg transition-all duration-300"
               >
-                <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">📨</div>
+                <div aria-hidden="true" className="text-4xl mb-3 group-hover:scale-110 transition-transform">📨</div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Broadcast</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Send messages instantly</p>
               </Link>
@@ -81,7 +93,7 @@ const PostLoginWelcome: React.FC = () => {
                 className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 hover:shadow-xl hover:scale-105"
               >
                 Continue to Dashboard
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </button>

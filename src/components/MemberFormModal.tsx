@@ -30,7 +30,7 @@ const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSav
     if (!open) return;
     if (initial) {
       setForm({
-        fullName: initial.fullName ?? initial.name ?? "",
+        fullName: initial.fullName ?? "",
         phone: initial.phone ?? "",
         birthday: initial.birthday ?? "",
         gender: initial.gender ?? "",

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "../context/ToastContext";
 import { useMembers, formatProperCase } from "../context/MembersContext";
+import { formatDateDDMMYYYY } from "../utils/date";
 import { Member } from "../types";
 
 const formatMemberID = (raw?: string) => {
@@ -15,22 +16,11 @@ const formatMemberID = (raw?: string) => {
   return `ANC-BMCE-${padded}`;
 };
 
-const formatDateDDMMYYYY = (dateStr?: string) => {
-  if (!dateStr) return "N/A";
-  if (dateStr.includes("-")) {
-    const parts = dateStr.split("-");
-    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  const d = new Date(dateStr);
-  if (!isNaN(d.getTime())) return d.toLocaleDateString("en-GB");
-  return dateStr;
-};
-
 const MemberProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { getMember, updateMember, sentMessages, organizations } = useMembers();
+  const { getMember, updateMember, sentMessages } = useMembers();
 
   const member = getMember(id || "");
 

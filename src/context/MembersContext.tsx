@@ -143,7 +143,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return {
             id: d.id,
             memberCode: data.memberCode || null,
-            fullName: data.fullName || data.name || "",
+            fullName: data.fullName || "",
             gender: data.gender || "",
             phone: data.phone || "",
             birthday: data.birthday || "",
@@ -194,7 +194,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await addDoc(collection(db, "activity_logs"), {
         timestamp: new Date().toISOString(),
-        user: user.name || user.email || "Unknown",
+        user: user.fullName || user.email || "Unknown",
         action,
         description,
       });
@@ -224,7 +224,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const payload: any = {
         memberCode,
-        fullName: formatProperCase(memberPartial.fullName || memberPartial.name || ""),
+        fullName: formatProperCase(memberPartial.fullName || ""),
         gender: memberPartial.gender || null,
         phone: memberPartial.phone || null,
         birthday: memberPartial.birthday || null,

@@ -10,7 +10,7 @@ import {
 import { auth } from '../firebase';
 
 interface User {
-  name: string;
+  fullName: string;
   email: string;
   uid: string;
 }
@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser({
           uid: currentUser.uid,
           email: currentUser.email || '',
-          name: currentUser.displayName || 'User'
+          fullName: currentUser.displayName || 'User'
         });
       } else {
         setUser(null);
@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser({
         uid: userCredential.user.uid,
         email: email,
-        name: name
+        fullName: name
       });
       return true;
     } catch (error) {

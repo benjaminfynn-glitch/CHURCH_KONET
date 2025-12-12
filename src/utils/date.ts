@@ -30,3 +30,22 @@ export function formatISOToDDMMYYYY(iso?: string) {
   if (!y || !m || !d) return '';
   return `${d}/${m}/${y}`;
 }
+
+export function formatISOToDDMMYYYYWithHyphens(iso?: string) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return '';
+  return `${d}-${m}-${y}`;
+}
+
+// Standardized date formatting function for the entire application
+export function formatDateDDMMYYYY(dateStr?: string) {
+  if (!dateStr) return "N/A";
+  if (dateStr.includes("-")) {
+    const parts = dateStr.split("-");
+    if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  const dt = new Date(dateStr);
+  if (!isNaN(dt.getTime())) return dt.toLocaleDateString("en-GB").replace(/\//g, "-");
+  return dateStr;
+}

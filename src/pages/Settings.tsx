@@ -132,7 +132,7 @@ const Settings: React.FC = () => {
                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                    {users.map(user => (
                                        <tr key={user.id}>
-                                           <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{user.name}</td>
+                                           <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{user.fullName}</td>
                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{user.email}</td>
                                            <td className="px-4 py-3">
                                                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-semibold">{user.role}</span>

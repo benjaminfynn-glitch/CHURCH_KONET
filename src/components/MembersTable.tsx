@@ -1,22 +1,12 @@
 // components/MembersTable.tsx
 import React from "react";
 import { Member } from "../types";
+import { formatDateDDMMYYYY } from "../utils/date";
 
 type Props = {
   members: Member[];
   onEdit: (m: Member) => void;
   onDelete: (m: Member) => void;
-};
-
-const formatDateDDMMYYYY = (d?: string) => {
-  if (!d) return "N/A";
-  if (d.includes("-")) {
-    const parts = d.split("-");
-    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  const dt = new Date(d);
-  if (!isNaN(dt.getTime())) return dt.toLocaleDateString("en-GB");
-  return d;
 };
 
 const MembersTable: React.FC<Props> = ({ members, onEdit, onDelete }) => {

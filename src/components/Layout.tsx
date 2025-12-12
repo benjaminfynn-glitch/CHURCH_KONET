@@ -48,19 +48,19 @@ const Layout: React.FC = () => {
   ];
 
   const SidebarContent = ({ isMobile = false }) => (
-    <div className="flex flex-col h-full overflow-hidden">
-       <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center h-[73px] whitespace-nowrap overflow-hidden">
-         <span className="text-2xl mr-3 min-w-[24px]">⛪</span>
+    <div className="flex flex-col h-full overflow-hidden bg-gradient-to-b from-church-cream to-white dark:from-slate-800 dark:to-slate-900">
+       <div className="p-6 border-b border-amber-200 dark:border-slate-700 flex items-center h-[73px] whitespace-nowrap overflow-hidden">
+         <div className="text-3xl mr-3 min-w-[24px] text-church-gold">✞</div>
          
          <h1 className={`
-            font-bold text-indigo-600 dark:text-indigo-400 tracking-tight text-xl transition-all duration-300
-            ${!isMobile && sidebarCollapsed 
-              ? 'lg:opacity-0 lg:w-0 lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:w-0' 
+            font-church font-bold text-church-brown dark:text-church-gold tracking-tight text-xl transition-all duration-300
+            ${!isMobile && sidebarCollapsed
+              ? 'lg:opacity-0 lg:w-0 lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:w-0'
               : 'lg:opacity-100 lg:w-auto'
             }
             md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto
          `}>
-           CHURCH KONET
+           <span className="text-church-gold">CHURCH</span> KONET
          </h1>
        </div>
 
@@ -72,8 +72,8 @@ const Layout: React.FC = () => {
               className={({ isActive }) =>
                 `flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap
                  ${isActive
-                    ? 'bg-indigo-50 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 border-l-4 border-indigo-600 dark:border-indigo-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-200 border-l-4 border-transparent'
+                    ? 'bg-amber-50 dark:bg-amber-900/20 text-church-brown dark:text-church-gold border-l-4 border-church-gold shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-church-brown dark:hover:text-church-gold border-l-4 border-transparent'
                  }
                 `
               }
@@ -83,9 +83,9 @@ const Layout: React.FC = () => {
               </span>
               
               <span className={`
-                ml-3 transition-all duration-300
-                ${!isMobile && sidebarCollapsed 
-                    ? 'lg:opacity-0 lg:translate-x-[-10px] lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:translate-x-[-10px]' 
+                ml-3 transition-all duration-300 font-body
+                ${!isMobile && sidebarCollapsed
+                    ? 'lg:opacity-0 lg:translate-x-[-10px] lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:translate-x-[-10px]'
                     : 'lg:opacity-100 lg:translate-x-0'
                 }
                 md:opacity-0 md:translate-x-[-10px] md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:translate-x-0
@@ -97,10 +97,10 @@ const Layout: React.FC = () => {
        </nav>
 
        {!isMobile && (
-        <div className="hidden lg:flex p-4 border-t border-slate-100 dark:border-slate-700 justify-end">
-          <button 
+        <div className="hidden lg:flex p-4 border-t border-amber-200 dark:border-slate-700 justify-end">
+          <button
             onClick={toggleSidebar}
-            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+            className="p-2 rounded-lg bg-amber-100 dark:bg-slate-700 text-church-brown dark:text-church-gold hover:bg-amber-200 transition-colors"
             aria-label={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {sidebarCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronLeft />}
@@ -109,32 +109,32 @@ const Layout: React.FC = () => {
        )}
        
        <div className={`
-         p-4 border-t border-slate-100 dark:border-slate-700 overflow-hidden whitespace-nowrap transition-all duration-300
-         ${!isMobile && sidebarCollapsed 
-           ? 'lg:h-0 lg:p-0 lg:group-hover/sidebar:h-0 lg:group-hover/sidebar:p-0 lg:border-none' 
+         p-4 border-t border-amber-200 dark:border-slate-700 overflow-hidden whitespace-nowrap transition-all duration-300
+         ${!isMobile && sidebarCollapsed
+           ? 'lg:h-0 lg:p-0 lg:group-hover/sidebar:h-0 lg:group-hover/sidebar:p-0 lg:border-none'
            : 'lg:h-auto'
          }
          md:h-0 md:p-0 md:group-hover/sidebar:h-auto md:group-hover/sidebar:p-4
        `}>
-         <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-100 dark:border-slate-700 space-y-3">
+         <div className="bg-amber-50 dark:bg-slate-800 rounded-lg p-3 border border-amber-200 dark:border-slate-700 space-y-3 shadow-sm">
             <div>
-              <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase truncate">System Status</p>
+              <p className="text-[10px] font-bold text-church-brown dark:text-church-gold uppercase truncate">System Status</p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">Online</span>
+                <span className="w-2 h-2 rounded-full bg-church-green animate-pulse"></span>
+                <span className="text-xs text-church-brown dark:text-church-gold font-medium">Online</span>
               </div>
             </div>
             
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="pt-3 border-t border-amber-200 dark:border-slate-600">
                <div className="flex items-center gap-2 mb-2">
-                 <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300">
-                    {user?.name?.charAt(0) || 'A'}
+                 <div className="w-6 h-6 rounded-full bg-church-gold flex items-center justify-center text-xs font-bold text-white">
+                    {user?.fullName?.charAt(0) || 'A'}
                  </div>
-                 <p className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">{user?.name || 'User'}</p>
+                 <p className="text-xs font-medium text-church-brown dark:text-church-gold truncate">{user?.fullName || 'User'}</p>
                </div>
-               <button 
+               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded transition-colors"
+                className="w-full flex items-center gap-2 text-xs text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded transition-colors"
                >
                  <Icons.Logout />
                  <span>Sign Out</span>
@@ -146,29 +146,29 @@ const Layout: React.FC = () => {
   );
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200 overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-church-cream to-amber-50 dark:from-slate-900 dark:to-slate-800 transition-colors duration-200 overflow-hidden">
       
       {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
           onClick={() => setIsMobileMenuOpen(false)}
           aria-hidden="true"
         />
       )}
 
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-3/4 max-w-xs bg-white dark:bg-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col
+        fixed inset-y-0 left-0 z-50 w-3/4 max-w-xs bg-gradient-to-b from-church-cream to-white dark:from-slate-800 dark:to-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
          <SidebarContent isMobile={true} />
       </div>
 
-      <aside 
+      <aside
         className={`
-          hidden md:flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 shadow-sm
+          hidden md:flex flex-col bg-gradient-to-b from-church-cream to-white dark:from-slate-800 dark:to-slate-900 border-r border-amber-200 dark:border-slate-700 shadow-lg
           transition-all duration-300 ease-in-out z-30 relative group/sidebar
-          ${sidebarCollapsed 
-            ? 'lg:w-20 lg:hover:w-20' 
+          ${sidebarCollapsed
+            ? 'lg:w-20 lg:hover:w-20'
             : 'lg:w-64'
           }
           md:w-20 md:hover:w-64
@@ -177,18 +177,18 @@ const Layout: React.FC = () => {
         <SidebarContent />
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50 dark:bg-slate-900">
-        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex justify-between items-center md:hidden sticky top-0 z-20">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gradient-to-br from-church-cream to-amber-50 dark:from-slate-900 dark:to-slate-800">
+        <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-amber-200 dark:border-slate-700 px-4 py-3 flex justify-between items-center md:hidden sticky top-0 z-20 shadow-sm">
             <div className="flex items-center gap-3">
-              <button 
+              <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 -ml-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                className="p-2 -ml-2 text-church-brown dark:text-church-gold hover:bg-amber-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                 aria-label="Open Menu"
               >
                 <Icons.Menu />
               </button>
-              <h1 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
-                <span>⛪</span> CHURCH KONET
+              <h1 className="text-lg font-church font-bold text-church-brown dark:text-church-gold flex items-center gap-2">
+                <span className="text-church-gold">✞</span> CHURCH KONET
               </h1>
             </div>
         </header>

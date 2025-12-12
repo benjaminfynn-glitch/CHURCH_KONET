@@ -1,11 +1,13 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { VolumeChart, DeliveryChart, PersonalizationChart, BirthdayDistributionChart } from '../components/DashboardStats';
 import { useSettings } from '../context/SettingsContext';
 import { useMembers } from '../context/MembersContext';
 import { useAuth } from '../context/AuthContext';
-import { SentMessage, Member } from '../types';
+import { getBalance } from '../services/api';
+import { formatISOToDDMMYYYYWithHyphens } from '../utils/date';
+import { SentMessage, Member, BalanceResponse } from '../types';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +18,30 @@ const Dashboard: React.FC = () => {
   // State for Duplicate Birthday Check
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [duplicateDetails, setDuplicateDetails] = useState<{ member: Member, lastMsg: SentMessage } | null>(null);
+
+  // State for Balance Data
+  const [balanceData, setBalanceData] = useState<BalanceResponse | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(true);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+
+  // Fetch balance data when component mounts
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        setBalanceLoading(true);
+        setBalanceError(null);
+        const balance = await getBalance();
+        setBalanceData(balance);
+      } catch (error) {
+        console.error('Failed to fetch balance:', error);
+        setBalanceError('Failed to load balance');
+      } finally {
+        setBalanceLoading(false);
+      }
+    };
+
+    fetchBalance();
+  }, []);
 
   // 1. Calculate Stats
   const totalMembers = members.length;
@@ -139,22 +165,37 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Overview of church engagement and messaging.</p>
+          <h2 className="text-4xl font-church font-bold text-church-brown dark:text-church-gold tracking-tight mb-2">Church Dashboard</h2>
+          <p className="text-church-brown/70 dark:text-church-gold/70 mt-1 font-body">Managing our congregation with faith and technology</p>
+          <div className="mt-4 flex items-center gap-2">
+            <span className="text-sm text-church-brown/50 dark:text-church-gold/50">📅 {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
-            <div className="text-right bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">SMS Credits</p>
-               <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">GHS 1,042.50</p>
+            <div className="text-right bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg">
+               <p className="text-xs font-bold text-church-brown dark:text-church-gold uppercase tracking-wider mb-1 flex items-center gap-1">
+                 <span>💰</span> SMS Credits
+               </p>
+               {balanceLoading ? (
+                 <p className="text-2xl font-bold text-church-brown dark:text-church-gold">Loading...</p>
+               ) : balanceError ? (
+                 <p className="text-2xl font-bold text-red-700 dark:text-red-400">Error</p>
+               ) : balanceData ? (
+                 <p className="text-2xl font-bold text-church-brown dark:text-church-gold">
+                   {balanceData.currency} {balanceData.balance.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                 </p>
+               ) : (
+                 <p className="text-2xl font-bold text-church-brown dark:text-church-gold">GHS 0.00</p>
+               )}
             </div>
             
-            <button 
+            <button
                 onClick={handleLogout}
-                className="h-full px-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex flex-col justify-center items-center gap-1 group"
+                className="h-full px-4 bg-amber-50 dark:bg-red-900/20 text-church-brown dark:text-red-400 rounded-xl border border-amber-200 dark:border-red-800 hover:bg-amber-100 dark:hover:bg-red-900/40 transition-colors flex flex-col justify-center items-center gap-1 group shadow-md"
                 title="Log Out"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span className="text-[10px] font-bold uppercase hidden md:block group-hover:underline">Logout</span>
+                <span className="text-[10px] font-bold uppercase hidden md:block group-hover:underline text-church-brown dark:text-red-400">Logout</span>
             </button>
         </div>
       </div>
@@ -162,18 +203,18 @@ const Dashboard: React.FC = () => {
       {/* Top Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Total Members', value: totalMembers, icon: '👥', color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-          { label: 'Active Members', value: activeMembers, icon: '✨', color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-          { label: birthdayData.label, value: birthdayData.count, icon: '🎂', color: 'text-pink-600', bg: 'bg-pink-50 dark:bg-pink-900/20' },
-          { label: 'Msgs Sent (Month)', value: messagesSentMonth.toLocaleString(), icon: '📨', color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-900/20' },
+          { label: 'Total Members', value: totalMembers, icon: '👥', color: 'text-church-brown', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+          { label: 'Active Members', value: activeMembers, icon: '✨', color: 'text-church-green', bg: 'bg-green-50 dark:bg-green-900/20' },
+          { label: birthdayData.label, value: birthdayData.count, icon: '🎂', color: 'text-church-gold', bg: 'bg-amber-100 dark:bg-amber-900/30' },
+          { label: 'Messages Sent', value: messagesSentMonth.toLocaleString(), icon: '📨', color: 'text-church-blue', bg: 'bg-blue-50 dark:bg-blue-900/20' },
         ].map((stat, idx) => (
-          <div key={idx} className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 group">
+          <div key={idx} className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:-translate-y-1">
              <div className="flex justify-between items-start">
                <div>
-                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{stat.label}</p>
-                 <h3 className="text-3xl font-bold text-slate-900 dark:text-white group-hover:scale-105 transition-transform origin-left">{stat.value}</h3>
+                 <p className="text-sm font-bold text-church-brown/70 dark:text-church-gold/70 mb-1">{stat.label}</p>
+                 <h3 className="text-3xl font-church font-bold text-church-brown dark:text-church-gold group-hover:scale-105 transition-transform origin-left">{stat.value}</h3>
                </div>
-               <div className={`p-3 rounded-lg ${stat.bg} ${stat.color} text-xl`}>
+               <div className={`p-3 rounded-lg ${stat.bg} ${stat.color} text-xl shadow-md`}>
                  {stat.icon}
                </div>
              </div>
@@ -201,101 +242,106 @@ const Dashboard: React.FC = () => {
            </div>
 
            {/* Activity Log */}
-           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden transition-colors">
-              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                  <h3 className="font-bold text-slate-800 dark:text-white">Recent Activity</h3>
-                  <button onClick={() => navigate('/settings')} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">View All</button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-medium">
-                        <tr>
-                            <th className="px-6 py-3">Timestamp</th>
-                            <th className="px-6 py-3">Action</th>
-                            <th className="px-6 py-3">User</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                        {recentLogs.map(log => (
-                          <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                              <td className="px-6 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{new Date(log.timestamp).toLocaleDateString()} <span className="text-xs">{new Date(log.timestamp).toLocaleTimeString()}</span></td>
-                              <td className="px-6 py-3 font-medium text-slate-800 dark:text-white">{log.action}</td>
-                              <td className="px-6 py-3 text-slate-600 dark:text-slate-300">{log.user}</td>
-                          </tr>
-                        ))}
-                        {recentLogs.length === 0 && (
-                           <tr><td colSpan={3} className="px-6 py-4 text-center text-slate-400">No activity recorded yet.</td></tr>
-                        )}
-                    </tbody>
-                </table>
-              </div>
+           <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg overflow-hidden transition-colors">
+               <div className="px-6 py-4 border-b border-amber-200 dark:border-slate-700 flex justify-between items-center bg-amber-50/50 dark:bg-slate-700/50">
+                   <h3 className="font-church font-bold text-church-brown dark:text-church-gold flex items-center gap-2">
+                     <span>📋</span> Recent Activity
+                   </h3>
+                   <button onClick={() => navigate('/settings')} className="text-xs text-church-brown dark:text-church-gold hover:underline font-medium">View All</button>
+               </div>
+               <div className="overflow-x-auto">
+                 <table className="w-full text-sm text-left">
+                     <thead className="bg-amber-50 dark:bg-slate-700 text-church-brown/70 dark:text-church-gold/70 font-medium">
+                         <tr>
+                             <th className="px-6 py-3">Timestamp</th>
+                             <th className="px-6 py-3">Action</th>
+                             <th className="px-6 py-3">User</th>
+                         </tr>
+                     </thead>
+                     <tbody className="divide-y divide-amber-100 dark:divide-slate-700">
+                         {recentLogs.map(log => (
+                           <tr key={log.id} className="hover:bg-amber-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                               <td className="px-6 py-3 text-church-brown/70 dark:text-church-gold/70 whitespace-nowrap">
+                                 {new Date(log.timestamp).toLocaleDateString('en-GB')} <span className="text-xs">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                               </td>
+                               <td className="px-6 py-3 font-medium text-church-brown dark:text-church-gold">{log.action}</td>
+                               <td className="px-6 py-3 text-church-brown/70 dark:text-church-gold/70">{log.user}</td>
+                           </tr>
+                         ))}
+                         {recentLogs.length === 0 && (
+                            <tr><td colSpan={3} className="px-6 py-4 text-center text-church-brown/50 dark:text-church-gold/50 font-medium">No activity recorded yet.</td></tr>
+                         )}
+                     </tbody>
+                 </table>
+               </div>
            </div>
         </div>
 
         {/* Right Column: Birthdays & Shortcuts (1/3 width) */}
         <div className="space-y-8">
            {/* Upcoming Birthdays Widget */}
-           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col h-[500px] transition-colors">
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700">
-                 <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>🎉</span> {birthdayData.label}
-                 </h3>
-                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Celebrating {birthdayData.count} members</p>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                 {birthdayData.list.map(member => {
-                    const isToday = new Date().getDate() === parseInt(member.birthday.split('-')[2]) && (new Date().getMonth() + 1) === parseInt(member.birthday.split('-')[1]);
-                    return (
-                       <div key={member.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isToday ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-slate-700/50 border-slate-100 dark:border-slate-600'}`}>
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${isToday ? 'bg-indigo-200 text-indigo-700' : 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300'}`}>
-                             {member.name.charAt(0)}
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                             <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{member.name}</p>
-                             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                                <span>Turning {member.turningAge}</span>
-                                <span>•</span>
-                                <span className={isToday ? 'text-indigo-600 font-bold' : ''}>
-                                    {isToday ? 'TODAY' : member.birthday.split('-').slice(1).reverse().join('/')}
-                                </span>
-                             </div>
-                          </div>
+           <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg flex flex-col h-[500px] transition-colors">
+               <div className="p-6 border-b border-amber-200 dark:border-slate-700 bg-gradient-to-r from-amber-50/50 to-transparent dark:from-slate-700/50">
+                  <h3 className="font-church font-bold text-lg text-church-brown dark:text-church-gold flex items-center gap-2">
+                     <span className="text-2xl">🎂</span> {birthdayData.label}
+                  </h3>
+                  <p className="text-sm text-church-brown/70 dark:text-church-gold/70 mt-1">Celebrating {birthdayData.count} members</p>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                  {birthdayData.list.map(member => {
+                     const isToday = new Date().getDate() === parseInt(member.birthday.split('-')[2]) && (new Date().getMonth() + 1) === parseInt(member.birthday.split('-')[1]);
+                     return (
+                        <div key={member.id} className={`flex items-center gap-3 p-4 rounded-lg border transition-colors ${isToday ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 shadow-md' : 'bg-white/50 dark:bg-slate-700/30 border-amber-200 dark:border-slate-600'}`}>
+                           <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${isToday ? 'bg-church-gold text-white' : 'bg-amber-200 text-church-brown'}`}>
+                              {member.fullName?.charAt(0)}
+                           </div>
+                           
+                           <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-church-brown dark:text-church-gold truncate">{member.fullName}</p>
+                              <div className="flex items-center gap-2 text-xs text-church-brown/70 dark:text-church-gold/70">
+                                 <span>Turning {member.turningAge}</span>
+                                 <span>•</span>
+                                 <span className={isToday ? 'text-church-gold font-bold' : ''}>
+                                     {isToday ? '🎉 TODAY!' : formatISOToDDMMYYYYWithHyphens(member.birthday)}
+                                 </span>
+                              </div>
+                           </div>
 
-                          {isToday && (
-                              <button 
-                                 onClick={() => handleSendBirthdayMessage(member)}
-                                 className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 rounded-full transition-colors"
-                                 title="Send Birthday Message"
-                              >
-                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                              </button>
-                          )}
-                       </div>
-                    );
-                 })}
-                 
-                 {birthdayData.list.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-400 text-center">
-                        <span className="text-4xl mb-2">📅</span>
-                        <p>No birthdays found in this period.</p>
-                        <button onClick={() => navigate('/settings')} className="text-sm text-indigo-600 mt-2 hover:underline">Change Period</button>
-                    </div>
-                 )}
-              </div>
+                           {isToday && (
+                               <button
+                                  onClick={() => handleSendBirthdayMessage(member)}
+                                  className="p-2.5 bg-church-gold text-white hover:bg-church-brown rounded-full transition-colors shadow-md"
+                                  title="Send Birthday Message"
+                               >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                               </button>
+                           )}
+                        </div>
+                     );
+                  })}
+                  
+                  {birthdayData.list.length === 0 && (
+                     <div className="h-full flex flex-col items-center justify-center text-church-brown/50 dark:text-church-gold/50 text-center">
+                         <span className="text-5xl mb-3">📅</span>
+                         <p className="font-medium mb-2">No birthdays found</p>
+                         <p className="text-sm mb-4">in this period</p>
+                         <button onClick={() => navigate('/settings')} className="text-sm text-church-brown dark:text-church-gold hover:underline font-medium bg-amber-100 dark:bg-amber-900/20 px-3 py-1 rounded-full">Change Period</button>
+                     </div>
+                  )}
+               </div>
            </div>
 
            {/* Quick Stats Grid */}
            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                 <p className="text-xs text-slate-500 uppercase font-bold">Scheduled</p>
-                 <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{scheduledMessages}</p>
-              </div>
-              <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                 <p className="text-xs text-slate-500 uppercase font-bold">Organizations</p>
-                 <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{totalOrgs}</p>
-              </div>
+               <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg">
+                  <p className="text-xs font-bold text-church-brown/70 dark:text-church-gold/70 uppercase tracking-wider">Scheduled</p>
+                  <p className="text-2xl font-church font-bold text-church-brown dark:text-church-gold mt-1">{scheduledMessages}</p>
+               </div>
+               <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg">
+                  <p className="text-xs font-bold text-church-brown/70 dark:text-church-gold/70 uppercase tracking-wider">Organizations</p>
+                  <p className="text-2xl font-church font-bold text-church-brown dark:text-church-gold mt-1">{totalOrgs}</p>
+               </div>
            </div>
         </div>
       </div>
@@ -311,7 +357,7 @@ const Dashboard: React.FC = () => {
                       <div>
                           <h3 className="text-xl font-bold text-slate-900 dark:text-white">Duplicate Message Warning</h3>
                           <p className="text-slate-600 dark:text-slate-300 mt-2">
-                              A birthday message has already been sent to <span className="font-bold">{duplicateDetails.member.name}</span> today.
+                              A birthday message has already been sent to <span className="font-bold">{duplicateDetails.member.fullName}</span> today.
                           </p>
                       </div>
                   </div>
