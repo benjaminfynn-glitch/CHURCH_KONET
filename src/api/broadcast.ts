@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+const API_BASE = '/api';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
@@ -16,6 +18,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!apiKey || !finalSender)
       return res.status(500).json({ message: 'Missing API key or Sender ID' });
+
+    // Check available balance
+    const balanceRes = await fetch(`${API_BASE}/balance`);
+    const balanceData = await balanceRes.json();
+    const available = balanceData.balance || 0;
+    const totalRecipients = destinations.length;
+    const costPerMessage = 0.05; // assumed cost per SMS
+    if (totalRecipients * costPerMessage > available) {
+      return res.status(402).json({ message: 'Insufficient SMS balance.' });
+    }
 
     // Split destinations into chunks of 100 to avoid provider limits
     const CHUNK_SIZE = 100;
