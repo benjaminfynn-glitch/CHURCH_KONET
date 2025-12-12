@@ -19,11 +19,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!apiKey || !finalSender)
       return res.status(500).json({ message: 'Missing API key or Sender ID' });
 
+    // Normalize phone numbers to international format
+    const normalized = destinations.map(num => {
+      const s = String(num).trim();
+      if (!s.startsWith('+')) {
+        // Assume Ghana country code if missing
+        return s.startsWith('0') ? '+233' + s.slice(1) : '+233' + s;
+      }
+      return s;
+    });
+
     // Check available balance
     const balanceRes = await fetch(`${API_BASE}/balance`);
     const balanceData = await balanceRes.json();
     const available = balanceData.balance || 0;
-    const totalRecipients = destinations.length;
+    const totalRecipients = normalized.length;
     const costPerMessage = 0.05; // assumed cost per SMS
     if (totalRecipients * costPerMessage > available) {
       return res.status(402).json({ message: 'Insufficient SMS balance.' });
@@ -32,8 +42,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Split destinations into chunks of 100 to avoid provider limits
     const CHUNK_SIZE = 100;
     const chunks: string[][] = [];
-    for (let i = 0; i < destinations.length; i += CHUNK_SIZE) {
-      chunks.push(destinations.slice(i, i + CHUNK_SIZE));
+    for (let i = 0; i < normalized.length; i += CHUNK_SIZE) {
+      chunks.push(normalized.slice(i, i + CHUNK_SIZE));
     }
 
     const results: any[] = [];
@@ -58,6 +68,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const json = await response.json();
 
+      // Log provider response for debugging
+      console.log('SMSONLINEGH response', json);
+
       // Validate handshake
       if (!json?.handshake || json.handshake.id !== 0 || json.handshake.label !== 'HSHK_OK') {
         return res.status(502).json({
@@ -70,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Aggregate total count
-    const totalCount = destinations.length;
+    const totalCount = normalized.length;
 
     return res.status(200).json({
       success: true,
@@ -78,6 +91,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       count: totalCount,
     });
   } catch (err: any) {
+    console.error('Broadcast API error', err);
     return res.status(500).json({ message: 'Internal Server Error', error: String(err) });
   }
 }

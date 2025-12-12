@@ -7,11 +7,20 @@ export default defineConfig(({ mode }) => {
   
   // Combine process.env and loaded .env vars
   const processEnv = { ...process.env, ...env };
-
+  
   return {
     plugins: [react()],
     build: {
       outDir: 'dist',
+    },
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3000', // Vercel dev server
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+      },
     },
     define: {
       // Define process.env globals. We use || '' to ensure they are always strings.
@@ -21,7 +30,7 @@ export default defineConfig(({ mode }) => {
       'process.env.VITE_FIREBASE_PROJECT_ID': JSON.stringify(processEnv.VITE_FIREBASE_PROJECT_ID || ''),
       'process.env.VITE_FIREBASE_STORAGE_BUCKET': JSON.stringify(processEnv.VITE_FIREBASE_STORAGE_BUCKET || ''),
       'process.env.VITE_FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(processEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || ''),
-      'process.env.VITE_FIREBASE_APP_ID': JSON.stringify(processEnv.VITE_FIREBASE_APP_ID || '')
-    }
+      'process.env.VITE_FIREBASE_APP_ID': JSON.stringify(processEnv.VITE_FIREBASE_APP_ID || ''),
+    },
   };
 });
