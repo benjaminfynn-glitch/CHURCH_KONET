@@ -172,7 +172,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-            <div className="text-right bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg">
+            {/* <div className="text-right bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg">
                <p className="text-xs font-bold text-church-brown dark:text-church-gold uppercase tracking-wider mb-1 flex items-center gap-1">
                  <span>💰</span> SMS Credits
                </p>
@@ -187,7 +187,7 @@ const Dashboard: React.FC = () => {
                ) : (
                  <p className="text-2xl font-bold text-church-brown dark:text-church-gold">GHS 0.00</p>
                )}
-            </div>
+            </div> */}
             
             <button
                 onClick={handleLogout}
