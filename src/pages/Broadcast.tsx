@@ -689,15 +689,6 @@ const Broadcast: React.FC = () => {
                  </div>
 
                  {/* Cost Tile */}
-                 <div className={`bg-slate-50 dark:bg-slate-700 p-4 rounded-xl border ${isBalanceLow ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-slate-200 dark:border-slate-600'}`}>
-                    <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-2">Est. Cost</p>
-                    <p className={`font-bold text-xl leading-tight ${isBalanceLow ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>
-                        <span className="text-sm font-normal text-slate-500 dark:text-slate-400 mr-0.5">GHS</span>
-                        {estimatedCost.toFixed(2)}
-                    </p>
-                    {isBalanceLow && <p className="text-red-500 text-[10px] font-bold mt-1">INSUFFICIENT FUNDS</p>}
-                    <p className="text-slate-400 text-[10px] mt-1">@ 0.05 / unit ({smsStats.segments} segs)</p>
-                 </div>
               </div>
 
               {/* Message Preview Section */}
@@ -744,9 +735,9 @@ const Broadcast: React.FC = () => {
                >
                  Cancel
                </button>
-               <button 
+               <button
                  onClick={confirmSend}
-                 disabled={isSending || isBalanceLow}
+                 disabled={isSending}
                  className="px-6 py-2.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed transition-all shadow-md shadow-indigo-200 dark:shadow-none flex items-center gap-2 transform active:scale-95"
                >
                  {isSending ? (
