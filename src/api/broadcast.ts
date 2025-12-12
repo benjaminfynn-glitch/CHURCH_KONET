@@ -17,37 +17,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!apiKey || !finalSender)
       return res.status(500).json({ message: 'Missing API key or Sender ID' });
 
-    const payload = {
-      text,
-      type: 0, // BROADCAST SMS
-      sender: finalSender,
-      destinations, // array of phone numbers (strings)
-    };
-
-    const response = await fetch('https://api.smsonlinegh.com/v5/message/sms/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `key ${apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const json = await response.json();
-
-    // Validate handshake (required to ensure send was accepted)
-    if (!json?.handshake || json.handshake.id !== 0 || json.handshake.label !== 'HSHK_OK') {
-      return res.status(502).json({
-        message: 'SMS provider rejected broadcast',
-        provider: json,
-      });
+    // Split destinations into chunks of 100 to avoid provider limits
+    const CHUNK_SIZE = 100;
+    const chunks: string[][] = [];
+    for (let i = 0; i < destinations.length; i += CHUNK_SIZE) {
+      chunks.push(destinations.slice(i, i + CHUNK_SIZE));
     }
+
+    const results: any[] = [];
+
+    for (const chunk of chunks) {
+      const payload = {
+        text,
+        type: 0, // BROADCAST SMS
+        sender: finalSender,
+        destinations: chunk,
+      };
+
+      const response = await fetch('https://api.smsonlinegh.com/v5/message/sms/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `key ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await response.json();
+
+      // Validate handshake
+      if (!json?.handshake || json.handshake.id !== 0 || json.handshake.label !== 'HSHK_OK') {
+        return res.status(502).json({
+          message: 'SMS provider rejected broadcast',
+          provider: json,
+        });
+      }
+
+      results.push({ provider: json.data, count: chunk.length });
+    }
+
+    // Aggregate total count
+    const totalCount = destinations.length;
 
     return res.status(200).json({
       success: true,
-      provider: json.data,
-      count: destinations.length,
+      provider: results,
+      count: totalCount,
     });
   } catch (err: any) {
     return res.status(500).json({ message: 'Internal Server Error', error: String(err) });
