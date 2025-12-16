@@ -21,7 +21,7 @@ const Welcome: React.FC = () => {
 
       {/* Hero Section */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 text-center pb-20 mt-10 md:mt-0">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold uppercase tracking-wide mb-6 border border-indigo-100 dark:border-indigo-800 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 dark:bg-primary-dark/30 text-primary dark:text-primary-light text-xs font-semibold uppercase tracking-wide mb-6 border border-primary/20 dark:border-primary-dark/80 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
           Now with AI-Powered Drafting
         </div>
@@ -37,7 +37,7 @@ const Welcome: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
           <Link 
             to="/login"
-            className="px-8 py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 text-center"
+            className="px-8 py-4 bg-primary text-text-light font-bold rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 dark:shadow-primary-dark/20 text-center"
           >
             Get Started
           </Link>

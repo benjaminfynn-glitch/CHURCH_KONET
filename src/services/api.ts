@@ -1,7 +1,7 @@
-import { SMSRequest, SMSResponse, BalanceResponse } from '../types';
+import { SMSRequest, SMSResponse, BalanceResponse, SMSDestinationPersonalized } from '../types';
 
-// Points to Vercel Serverless Functions in the /api directory
-const API_BASE = '/api';
+// Points to the local development API server
+const API_BASE = 'http://localhost:3000/api';
 
 export const sendBroadcast = async (payload: SMSRequest): Promise<SMSResponse> => {
   try {
@@ -32,9 +32,43 @@ export const sendBroadcast = async (payload: SMSRequest): Promise<SMSResponse> =
   }
 };
 
+export const sendPersonalizedSMS = async (payload: { text: string; sender: string; destinations: SMSDestinationPersonalized[] }): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE}/send-personalised-sms`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Personalized SMS request failed';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (e) {
+        // Ignore JSON parse error
+      }
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Personalized SMS failed", error);
+    throw error;
+  }
+};
+
 export const getBalance = async (): Promise<BalanceResponse> => {
   try {
-    const response = await fetch(`${API_BASE}/balance`);
+    const response = await fetch(`${API_BASE}/balance`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch balance');
     }

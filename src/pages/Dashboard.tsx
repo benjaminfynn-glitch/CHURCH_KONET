@@ -13,30 +13,28 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { theme, birthdaySettings } = useSettings();
   const { members, organizations, activityLog, sentMessages } = useMembers();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   // State for Duplicate Birthday Check
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [duplicateDetails, setDuplicateDetails] = useState<{ member: Member, lastMsg: SentMessage } | null>(null);
 
-  // State for Balance Data
-  const [balanceData, setBalanceData] = useState<BalanceResponse | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(true);
-  const [balanceError, setBalanceError] = useState<string | null>(null);
+  // State for SMS Balance
+  const [smsBalance, setSmsBalance] = useState<BalanceResponse | null>(null);
+  const [loadingBalance, setLoadingBalance] = useState(true);
 
-  // Fetch balance data when component mounts
+  // Fetch SMS balance on component mount
   useEffect(() => {
     const fetchBalance = async () => {
       try {
-        setBalanceLoading(true);
-        setBalanceError(null);
         const balance = await getBalance();
-        setBalanceData(balance);
+        setSmsBalance(balance);
       } catch (error) {
-        console.error('Failed to fetch balance:', error);
-        setBalanceError('Failed to load balance');
+        console.error('Failed to fetch SMS balance:', error);
+        // Set a default balance to avoid breaking the UI
+        setSmsBalance({ balance: 0, currency: 'GHS' });
       } finally {
-        setBalanceLoading(false);
+        setLoadingBalance(false);
       }
     };
 
@@ -138,14 +136,16 @@ const Dashboard: React.FC = () => {
   };
 
   const proceedToBroadcast = (member: Member) => {
-    const birthdayMessage = `Happy Birthday, {$name}\nMay God's light and love shine brightly upon you, filling your day and the year ahead with abundant blessings and happiness. We're so grateful for your wonderful presence at Bethel Society, Efutu.\n\nBethel, Nyame wa ha!`;
+    // Get the first name of the member
+    const firstName = member.fullName?.split(' ')[0] || 'Friend';
+    const birthdayMessage = `Happy Birthday, ${firstName}!\nMay God's light and love shine brightly upon you, filling your day and the year ahead with abundant blessings and happiness. We're so grateful for your wonderful presence at Bethel Society, Efutu.\n\nBethel, Nyame wa ha!`;
 
-    navigate('/broadcast', { 
-        state: { 
+    navigate('/broadcast', {
+        state: {
             recipientId: member.id,
             initialMessage: birthdayMessage,
             isBirthday: true
-        } 
+        }
     });
   };
 
@@ -165,37 +165,40 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-4xl font-church font-bold text-church-brown dark:text-church-gold tracking-tight mb-2">Church Dashboard</h2>
-          <p className="text-church-brown/70 dark:text-church-gold/70 mt-1 font-body">Managing our congregation with faith and technology</p>
+          <h2 className="text-4xl font-bold text-primary tracking-tight mb-2">Church Dashboard</h2>
+          <p className="text-primary/70 mt-1">Managing our congregation with faith and technology</p>
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-sm text-church-brown/50 dark:text-church-gold/50">📅 {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <span className="text-sm text-primary/50">📅 {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            {user && (
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                user.role === 'admin'
+                  ? 'bg-secondary/10 text-secondary border border-secondary/20'
+                  : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+              }`}>
+                {user.role === 'admin' ? '👑 Admin' : '👤 User'}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3">
-            {/* <div className="text-right bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg">
-               <p className="text-xs font-bold text-church-brown dark:text-church-gold uppercase tracking-wider mb-1 flex items-center gap-1">
-                 <span>💰</span> SMS Credits
-               </p>
-               {balanceLoading ? (
-                 <p className="text-2xl font-bold text-church-brown dark:text-church-gold">Loading...</p>
-               ) : balanceError ? (
-                 <p className="text-2xl font-bold text-red-700 dark:text-red-400">Error</p>
-               ) : balanceData ? (
-                 <p className="text-2xl font-bold text-church-brown dark:text-church-gold">
-                   {balanceData.currency} {balanceData.balance.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                 </p>
-               ) : (
-                 <p className="text-2xl font-bold text-church-brown dark:text-church-gold">GHS 0.00</p>
-               )}
-            </div> */}
-            
+            {/* SMS Balance Display */}
+            <div className="h-full px-4 bg-primary/10 text-primary rounded-xl border border-primary/20 flex flex-col justify-center items-center gap-1 shadow-md">
+                <div className="flex items-center gap-1">
+                    <span className="text-lg">💰</span>
+                    <span className="font-bold text-lg">
+                        {loadingBalance ? '...' : `${smsBalance?.balance || 0}`}
+                    </span>
+                </div>
+                <span className="text-[9px] font-bold uppercase text-primary">SMS Balance</span>
+            </div>
+
             <button
                 onClick={handleLogout}
-                className="h-full px-4 bg-amber-50 dark:bg-red-900/20 text-church-brown dark:text-red-400 rounded-xl border border-amber-200 dark:border-red-800 hover:bg-amber-100 dark:hover:bg-red-900/40 transition-colors flex flex-col justify-center items-center gap-1 group shadow-md"
+                className="h-full px-4 bg-secondary/10 text-secondary rounded-xl border border-secondary/20 hover:bg-secondary/20 transition-colors flex flex-col justify-center items-center gap-1 group shadow-md"
                 title="Log Out"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span className="text-[10px] font-bold uppercase hidden md:block group-hover:underline text-church-brown dark:text-red-400">Logout</span>
+                <span className="text-[10px] font-bold uppercase hidden md:block group-hover:underline text-secondary">Logout</span>
             </button>
         </div>
       </div>
@@ -203,16 +206,22 @@ const Dashboard: React.FC = () => {
       {/* Top Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Total Members', value: totalMembers, icon: '👥', color: 'text-church-brown', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-          { label: 'Active Members', value: activeMembers, icon: '✨', color: 'text-church-green', bg: 'bg-green-50 dark:bg-green-900/20' },
-          { label: birthdayData.label, value: birthdayData.count, icon: '🎂', color: 'text-church-gold', bg: 'bg-amber-100 dark:bg-amber-900/30' },
-          { label: 'Messages Sent', value: messagesSentMonth.toLocaleString(), icon: '📨', color: 'text-church-blue', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          { label: 'Total Members', value: totalMembers, icon: '👥', color: 'text-primary', bg: 'bg-primary/10' },
+          { label: 'Active Members', value: activeMembers, icon: '✨', color: 'text-green-600', bg: 'bg-green-50' },
+          { label: birthdayData.label, value: birthdayData.count, icon: '🎂', color: 'text-accent', bg: 'bg-accent/10' },
+          {
+            label: 'SMS Balance',
+            value: loadingBalance ? '...' : `${smsBalance?.balance || 0} ${smsBalance?.currency || 'SMS'}`,
+            icon: '💰',
+            color: smsBalance && smsBalance.balance > 50 ? 'text-green-600' : 'text-secondary',
+            bg: smsBalance && smsBalance.balance > 50 ? 'bg-green-50' : 'bg-secondary/10'
+          },
         ].map((stat, idx) => (
-          <div key={idx} className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:-translate-y-1">
+          <div key={idx} className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 rounded-xl border border-primary/20 shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:-translate-y-1">
              <div className="flex justify-between items-start">
                <div>
-                 <p className="text-sm font-bold text-church-brown/70 dark:text-church-gold/70 mb-1">{stat.label}</p>
-                 <h3 className="text-3xl font-church font-bold text-church-brown dark:text-church-gold group-hover:scale-105 transition-transform origin-left">{stat.value}</h3>
+                 <p className="text-sm font-bold text-primary/70 mb-1">{stat.label}</p>
+                 <h3 className="text-3xl font-bold text-primary group-hover:scale-105 transition-transform origin-left">{stat.value}</h3>
                </div>
                <div className={`p-3 rounded-lg ${stat.bg} ${stat.color} text-xl shadow-md`}>
                  {stat.icon}
@@ -242,34 +251,34 @@ const Dashboard: React.FC = () => {
            </div>
 
            {/* Activity Log */}
-           <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg overflow-hidden transition-colors">
-               <div className="px-6 py-4 border-b border-amber-200 dark:border-slate-700 flex justify-between items-center bg-amber-50/50 dark:bg-slate-700/50">
-                   <h3 className="font-church font-bold text-church-brown dark:text-church-gold flex items-center gap-2">
+           <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-primary/20 shadow-lg overflow-hidden transition-colors">
+               <div className="px-6 py-4 border-b border-primary/20 flex justify-between items-center bg-primary/5">
+                   <h3 className="font-bold text-primary flex items-center gap-2">
                      <span>📋</span> Recent Activity
                    </h3>
-                   <button onClick={() => navigate('/settings')} className="text-xs text-church-brown dark:text-church-gold hover:underline font-medium">View All</button>
+                   <button onClick={() => navigate('/settings')} className="text-xs text-primary hover:underline font-medium">View All</button>
                </div>
                <div className="overflow-x-auto">
                  <table className="w-full text-sm text-left">
-                     <thead className="bg-amber-50 dark:bg-slate-700 text-church-brown/70 dark:text-church-gold/70 font-medium">
+                     <thead className="bg-primary/5 text-primary/70 font-medium">
                          <tr>
                              <th className="px-6 py-3">Timestamp</th>
                              <th className="px-6 py-3">Action</th>
                              <th className="px-6 py-3">User</th>
                          </tr>
                      </thead>
-                     <tbody className="divide-y divide-amber-100 dark:divide-slate-700">
+                     <tbody className="divide-y divide-primary/10">
                          {recentLogs.map(log => (
-                           <tr key={log.id} className="hover:bg-amber-50/50 dark:hover:bg-slate-700/50 transition-colors">
-                               <td className="px-6 py-3 text-church-brown/70 dark:text-church-gold/70 whitespace-nowrap">
+                           <tr key={log.id} className="hover:bg-primary/5 transition-colors">
+                               <td className="px-6 py-3 text-primary/70 whitespace-nowrap">
                                  {new Date(log.timestamp).toLocaleDateString('en-GB')} <span className="text-xs">{new Date(log.timestamp).toLocaleTimeString()}</span>
                                </td>
-                               <td className="px-6 py-3 font-medium text-church-brown dark:text-church-gold">{log.action}</td>
-                               <td className="px-6 py-3 text-church-brown/70 dark:text-church-gold/70">{log.user}</td>
+                               <td className="px-6 py-3 font-medium text-primary">{log.action}</td>
+                               <td className="px-6 py-3 text-primary/70">{log.user}</td>
                            </tr>
                          ))}
                          {recentLogs.length === 0 && (
-                            <tr><td colSpan={3} className="px-6 py-4 text-center text-church-brown/50 dark:text-church-gold/50 font-medium">No activity recorded yet.</td></tr>
+                            <tr><td colSpan={3} className="px-6 py-4 text-center text-primary/50 font-medium">No activity recorded yet.</td></tr>
                          )}
                      </tbody>
                  </table>
@@ -280,29 +289,29 @@ const Dashboard: React.FC = () => {
         {/* Right Column: Birthdays & Shortcuts (1/3 width) */}
         <div className="space-y-8">
            {/* Upcoming Birthdays Widget */}
-           <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg flex flex-col h-[500px] transition-colors">
-               <div className="p-6 border-b border-amber-200 dark:border-slate-700 bg-gradient-to-r from-amber-50/50 to-transparent dark:from-slate-700/50">
-                  <h3 className="font-church font-bold text-lg text-church-brown dark:text-church-gold flex items-center gap-2">
+           <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-primary/20 shadow-lg flex flex-col h-[500px] transition-colors">
+               <div className="p-6 border-b border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+                  <h3 className="font-bold text-lg text-primary flex items-center gap-2">
                      <span className="text-2xl">🎂</span> {birthdayData.label}
                   </h3>
-                  <p className="text-sm text-church-brown/70 dark:text-church-gold/70 mt-1">Celebrating {birthdayData.count} members</p>
+                  <p className="text-sm text-primary/70 mt-1">Celebrating {birthdayData.count} members</p>
                </div>
                
                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                   {birthdayData.list.map(member => {
                      const isToday = new Date().getDate() === parseInt(member.birthday.split('-')[2]) && (new Date().getMonth() + 1) === parseInt(member.birthday.split('-')[1]);
                      return (
-                        <div key={member.id} className={`flex items-center gap-3 p-4 rounded-lg border transition-colors ${isToday ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 shadow-md' : 'bg-white/50 dark:bg-slate-700/30 border-amber-200 dark:border-slate-600'}`}>
-                           <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${isToday ? 'bg-church-gold text-white' : 'bg-amber-200 text-church-brown'}`}>
+                        <div key={member.id} className={`flex items-center gap-3 p-4 rounded-lg border transition-colors ${isToday ? 'bg-accent/10 border-accent/30 shadow-md' : 'bg-white/50 dark:bg-slate-700/30 border-primary/20'}`}>
+                           <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${isToday ? 'bg-accent text-white' : 'bg-primary/20 text-primary'}`}>
                               {member.fullName?.charAt(0)}
                            </div>
-                           
+
                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-church-brown dark:text-church-gold truncate">{member.fullName}</p>
-                              <div className="flex items-center gap-2 text-xs text-church-brown/70 dark:text-church-gold/70">
+                              <p className="text-sm font-bold text-primary truncate">{member.fullName}</p>
+                              <div className="flex items-center gap-2 text-xs text-primary/70">
                                  <span>Turning {member.turningAge}</span>
                                  <span>•</span>
-                                 <span className={isToday ? 'text-church-gold font-bold' : ''}>
+                                 <span className={isToday ? 'text-accent font-bold' : ''}>
                                      {isToday ? '🎉 TODAY!' : formatISOToDDMMYYYYWithHyphens(member.birthday)}
                                  </span>
                               </div>
@@ -311,7 +320,7 @@ const Dashboard: React.FC = () => {
                            {isToday && (
                                <button
                                   onClick={() => handleSendBirthdayMessage(member)}
-                                  className="p-2.5 bg-church-gold text-white hover:bg-church-brown rounded-full transition-colors shadow-md"
+                                  className="p-2.5 bg-accent text-text-light hover:bg-accent-dark rounded-full transition-colors shadow-md"
                                   title="Send Birthday Message"
                                >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -322,11 +331,11 @@ const Dashboard: React.FC = () => {
                   })}
                   
                   {birthdayData.list.length === 0 && (
-                     <div className="h-full flex flex-col items-center justify-center text-church-brown/50 dark:text-church-gold/50 text-center">
+                     <div className="h-full flex flex-col items-center justify-center text-primary/50 text-center">
                          <span className="text-5xl mb-3">📅</span>
                          <p className="font-medium mb-2">No birthdays found</p>
                          <p className="text-sm mb-4">in this period</p>
-                         <button onClick={() => navigate('/settings')} className="text-sm text-church-brown dark:text-church-gold hover:underline font-medium bg-amber-100 dark:bg-amber-900/20 px-3 py-1 rounded-full">Change Period</button>
+                         <button onClick={() => navigate('/settings')} className="text-sm text-primary hover:underline font-medium bg-primary/10 px-3 py-1 rounded-full">Change Period</button>
                      </div>
                   )}
                </div>
@@ -334,13 +343,13 @@ const Dashboard: React.FC = () => {
 
            {/* Quick Stats Grid */}
            <div className="grid grid-cols-2 gap-4">
-               <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg">
-                  <p className="text-xs font-bold text-church-brown/70 dark:text-church-gold/70 uppercase tracking-wider">Scheduled</p>
-                  <p className="text-2xl font-church font-bold text-church-brown dark:text-church-gold mt-1">{scheduledMessages}</p>
+               <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-primary/20 shadow-lg">
+                  <p className="text-xs font-bold text-primary/70 uppercase tracking-wider">Scheduled</p>
+                  <p className="text-2xl font-bold text-primary mt-1">{scheduledMessages}</p>
                </div>
-               <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-amber-200 dark:border-slate-700 shadow-lg">
-                  <p className="text-xs font-bold text-church-brown/70 dark:text-church-gold/70 uppercase tracking-wider">Organizations</p>
-                  <p className="text-2xl font-church font-bold text-church-brown dark:text-church-gold mt-1">{totalOrgs}</p>
+               <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-4 rounded-xl border border-primary/20 shadow-lg">
+                  <p className="text-xs font-bold text-primary/70 uppercase tracking-wider">Organizations</p>
+                  <p className="text-2xl font-bold text-primary mt-1">{totalOrgs}</p>
                </div>
            </div>
         </div>
@@ -378,12 +387,12 @@ const Dashboard: React.FC = () => {
                       >
                           Cancel
                       </button>
-                      <button 
+                      <button
                           onClick={() => {
                               setDuplicateModalOpen(false);
                               proceedToBroadcast(duplicateDetails.member);
                           }}
-                          className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors shadow-sm"
+                          className="px-4 py-2 bg-accent text-text-light font-medium rounded-lg hover:bg-accent-dark transition-colors shadow-sm"
                       >
                           Send Again
                       </button>

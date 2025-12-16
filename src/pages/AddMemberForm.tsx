@@ -76,7 +76,7 @@ export default function AddMemberForm() {
         <button
           type="submit"
           disabled={busy}
-          className="inline-flex items-center px-4 py-2 rounded bg-blue-600 text-white"
+          className="inline-flex items-center px-4 py-2 rounded bg-primary text-text-light"
         >
           {busy ? 'Adding...' : 'Add Member'}
         </button>
@@ -102,7 +102,7 @@ export default function AddMemberForm() {
             alert("Failed to add test member");
           }
         }}
-        className="bg-blue-500 text-white p-2 rounded mt-4"
+        className="bg-primary text-text-light p-2 rounded mt-4"
       >
         Run Firestore Test
       </button>

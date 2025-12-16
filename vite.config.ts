@@ -13,15 +13,8 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
     },
-    server: {
-      proxy: {
-        '/api': {
-          target: 'http://localhost:3000', // Vercel dev server
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
-        },
-      },
-    },
+    // Removed proxy configuration - API calls will be handled directly by Vercel in production
+    // For local development, the API endpoints need to be running separately or use mock data
     define: {
       // Define process.env globals. We use || '' to ensure they are always strings.
       'process.env.API_KEY': JSON.stringify(processEnv.API_KEY || ''),

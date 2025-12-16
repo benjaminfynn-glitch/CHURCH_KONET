@@ -3,17 +3,22 @@ import React, { useMemo, useState } from "react";
 import { useMembers } from "../context/MembersContext";
 import MembersTable from "../components/MembersTable";
 import MemberFormModal from "../components/MemberFormModal";
+import DeleteReasonModal from "../components/DeleteReasonModal";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import { Member } from "../types";
 
 export default function MembersPage() {
-  const { members, organizations, addMember, updateMember, deleteMember, importMembersFromCSV } = useMembers();
+  const { members, organizations, addMember, updateMember, deleteMember, importMembersFromCSV, requestMemberDelete } = useMembers();
   const { addToast } = useToast();
+  const { isAdmin } = useAuth();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Member> | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
 
   const openAdd = () => {
     setEditing(null);
@@ -27,12 +32,34 @@ export default function MembersPage() {
 
   const onDelete = async (m: Member) => {
     if (!m.id) return addToast("Missing member id", "error");
+    
+    // If admin, delete immediately
+    if (isAdmin) {
+      try {
+        await deleteMember(m.id);
+        addToast("Member deleted", "success");
+      } catch (e) {
+        console.error(e);
+        addToast("Delete failed", "error");
+      }
+    } else {
+      // If user, show delete reason modal
+      setMemberToDelete(m);
+      setDeleteModalOpen(true);
+    }
+  };
+
+  const handleDeleteSubmit = async (reason: 'Not a Member' | 'Transferred' | 'Ceased to Fellowship' | 'Deceased') => {
+    if (!memberToDelete || !memberToDelete.id) return;
+    
     try {
-      await deleteMember(m.id);
-      addToast("Member deleted", "success");
+      await requestMemberDelete(memberToDelete.id, reason);
+      addToast("Delete request submitted", "success");
+      setDeleteModalOpen(false);
+      setMemberToDelete(null);
     } catch (e) {
       console.error(e);
-      addToast("Delete failed", "error");
+      addToast("Failed to submit delete request", "error");
     }
   };
 
@@ -59,7 +86,9 @@ export default function MembersPage() {
           <p className="text-sm text-slate-500">Manage congregation contacts</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setImportOpen(true)} className="px-3 py-2 rounded bg-white border">Import CSV</button>
+          {isAdmin && (
+            <button onClick={() => setImportOpen(true)} className="px-3 py-2 rounded bg-white border">Import CSV</button>
+          )}
           <button onClick={openAdd} className="px-3 py-2 rounded bg-sky-600 text-white">+ Add Member</button>
         </div>
       </div>
@@ -81,11 +110,21 @@ export default function MembersPage() {
             <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} rows={8} className="w-full rounded border p-2 font-mono" />
             <div className="flex justify-end gap-2 mt-3">
               <button onClick={() => setImportOpen(false)} className="px-3 py-2 rounded bg-gray-100">Cancel</button>
-              <button onClick={handleImport} className="px-3 py-2 rounded bg-indigo-600 text-white">Import</button>
+              <button onClick={handleImport} className="px-3 py-2 rounded bg-primary text-text-light">Import</button>
             </div>
           </div>
         </div>
       )}
+
+      <DeleteReasonModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setMemberToDelete(null);
+        }}
+        onSubmit={handleDeleteSubmit}
+        memberName={memberToDelete?.fullName}
+      />
     </div>
   );
 }

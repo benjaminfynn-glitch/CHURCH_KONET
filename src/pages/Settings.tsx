@@ -2,19 +2,21 @@ import React, { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { useMembers } from '../context/MembersContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { BirthdayPeriod } from '../types';
 
 const Settings: React.FC = () => {
   const { theme, toggleTheme, birthdaySettings, updateBirthdaySettings } = useSettings();
-  const { 
+  const {
     users, deleteUser,
     organizations, addOrganization, deleteOrganization, updateOrganization,
     templates, addTemplate, deleteTemplate,
-    activityLog 
+    activityLog
   } = useMembers();
   const { addToast } = useToast();
+  const { user, isAdmin } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'users'|'theme'|'birthdays'|'orgs'|'templates'|'logs'>('theme');
+  const [activeTab, setActiveTab] = useState<'users'|'theme'|'birthdays'|'orgs'|'templates'|'logs'|'approvals'>('theme');
 
   // Org State
   const [newOrgName, setNewOrgName] = useState('');
@@ -25,7 +27,8 @@ const Settings: React.FC = () => {
 
   const tabs = [
     { id: 'theme', label: 'Theme & Appearance', icon: '🎨' },
-    { id: 'users', label: 'User Management', icon: '👥' },
+    ...(isAdmin ? [{ id: 'users', label: 'User Management', icon: '👥' }] : []),
+    ...(isAdmin ? [{ id: 'approvals', label: 'Approval Management', icon: '✅' }] : []),
     { id: 'birthdays', label: 'Birthday Settings', icon: '🎂' },
     { id: 'orgs', label: 'Organizations', icon: '🏢' },
     { id: 'templates', label: 'Message Templates', icon: '📝' },
@@ -179,7 +182,7 @@ const Settings: React.FC = () => {
                                      addToast('Organization added', 'success');
                                  }
                              }}
-                             className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
+                             className="bg-primary text-text-light px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark"
                            >
                                Add
                            </button>
@@ -294,6 +297,24 @@ const Settings: React.FC = () => {
                                    )}
                                </tbody>
                            </table>
+                       </div>
+                   </div>
+               )}
+
+               {/* Approval Management */}
+               {activeTab === 'approvals' && (
+                   <div className="space-y-6">
+                       <h3 className="text-lg font-bold text-slate-900 dark:text-white">Approval Management</h3>
+                       <p className="text-slate-600 dark:text-slate-400">
+                           Review and approve member management requests submitted by regular users.
+                       </p>
+                       <div className="flex gap-4">
+                           <a
+                               href="/approval-management"
+                               className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+                           >
+                               Go to Approval Management
+                           </a>
                        </div>
                    </div>
                )}

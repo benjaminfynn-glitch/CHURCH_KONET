@@ -1,0 +1,69 @@
+@layer base {
+  :root {
+    /* Methodist Church Ghana Theme - Enhanced for Readability */
+    --church-blue: 25, 118, 210;     /* Rich Blue #1976D2 */
+    --church-red: 183, 28, 28;       /* Deep Red #B71C1C */
+    --church-gold: 245, 127, 23;     /* Vibrant Gold #F57F17 */
+
+    /* Primary Color - Rich Blue */
+    --color-primary: var(--church-blue);
+    --color-primary-light: 144, 202, 249;
+    --color-primary-dark: 13, 71, 161;
+
+    /* Secondary Color - Deep Red */
+    --color-secondary: var(--church-red);
+    --color-secondary-light: 229, 115, 115;
+    --color-secondary-dark: 103, 10, 10;
+
+    /* Accent Color - Vibrant Gold */
+    --color-accent: var(--church-gold);
+    --color-accent-light: 255, 183, 77;
+    --color-accent-dark: 191, 95, 0;
+
+    /* Neutral Colors for Text */
+    --color-text-primary: 33, 33, 33;      /* Dark Gray */
+    --color-text-secondary: 117, 117, 117; /* Medium Gray */
+    --color-text-light: 255, 255, 255;     /* White */
+  }
+}
+
+@layer components {
+  .bg-church-blue {
+    background-color: rgb(var(--color-primary));
+  }
+  .text-church-blue {
+    color: rgb(var(--color-primary));
+  }
+  .border-church-blue {
+    border-color: rgb(var(--color-primary));
+  }
+
+  .bg-church-red {
+    background-color: rgb(var(--color-secondary));
+  }
+  .text-church-red {
+    color: rgb(var(--color-secondary));
+  }
+  .border-church-red {
+    border-color: rgb(var(--color-secondary));
+  }
+
+  .bg-church-gold {
+    background-color: rgb(var(--color-accent));
+  }
+  .text-church-gold {
+    color: rgb(var(--color-accent));
+  }
+  .border-church-gold {
+    border-color: rgb(var(--color-accent));
+  }
+
+  /* Gradient utilities */
+  .bg-gradient-church {
+    background-image: linear-gradient(
+      to right,
+      rgb(var(--color-primary)),
+      rgb(var(--color-secondary))
+    );
+  }
+}

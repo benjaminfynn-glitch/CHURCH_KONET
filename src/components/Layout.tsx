@@ -10,6 +10,7 @@ const Icons = {
   Broadcast: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 5"></path><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path><circle cx="12" cy="12" r="2"></circle><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path><path d="M19.1 5c3.9 3.9 3.9 10.2 0 14.1"></path></svg>,
   Members: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>,
   Settings: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>,
+  Approvals: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>,
   Menu: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>,
   ChevronLeft: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>,
   ChevronRight: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
@@ -18,7 +19,7 @@ const Icons = {
 
 const Layout: React.FC = () => {
   const { sidebarCollapsed, toggleSidebar } = useSettings();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,23 +45,24 @@ const Layout: React.FC = () => {
     { name: 'Dashboard', path: '/dashboard', icon: <Icons.Dashboard /> },
     { name: 'Broadcast', path: '/broadcast', icon: <Icons.Broadcast /> },
     { name: 'Members', path: '/members', icon: <Icons.Members /> },
+    ...(isAdmin ? [{ name: 'Approval Management', path: '/approval-management', icon: <Icons.Approvals /> }] : []),
     { name: 'Settings', path: '/settings', icon: <Icons.Settings /> },
   ];
 
   const SidebarContent = ({ isMobile = false }) => (
-    <div className="flex flex-col h-full overflow-hidden bg-gradient-to-b from-church-cream to-white dark:from-slate-800 dark:to-slate-900">
-       <div className="p-6 border-b border-amber-200 dark:border-slate-700 flex items-center h-[73px] whitespace-nowrap overflow-hidden">
-         <div className="text-3xl mr-3 min-w-[24px] text-church-gold">✞</div>
-         
+    <div className="flex flex-col h-full overflow-hidden bg-gradient-to-b from-white to-primary/5 dark:from-slate-800 dark:to-slate-900">
+       <div className="p-6 border-b border-primary/20 flex items-center h-[73px] whitespace-nowrap overflow-hidden">
+         <div className="text-3xl mr-3 min-w-[24px] text-accent">✞</div>
+
          <h1 className={`
-            font-church font-bold text-church-brown dark:text-church-gold tracking-tight text-xl transition-all duration-300
+            font-bold text-primary tracking-tight text-xl transition-all duration-300
             ${!isMobile && sidebarCollapsed
               ? 'lg:opacity-0 lg:w-0 lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:w-0'
               : 'lg:opacity-100 lg:w-auto'
             }
             md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto
          `}>
-           <span className="text-church-gold">CHURCH</span> KONET
+           <span className="text-accent">CHURCH</span> KONET
          </h1>
        </div>
 
@@ -72,8 +74,8 @@ const Layout: React.FC = () => {
               className={({ isActive }) =>
                 `flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap
                  ${isActive
-                    ? 'bg-amber-50 dark:bg-amber-900/20 text-church-brown dark:text-church-gold border-l-4 border-church-gold shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-church-brown dark:hover:text-church-gold border-l-4 border-transparent'
+                   ? 'bg-primary/10 text-primary border-l-4 border-accent shadow-sm'
+                   : 'text-slate-600 dark:text-slate-400 hover:bg-primary/5 hover:text-primary border-l-4 border-transparent'
                  }
                 `
               }
@@ -97,10 +99,10 @@ const Layout: React.FC = () => {
        </nav>
 
        {!isMobile && (
-        <div className="hidden lg:flex p-4 border-t border-amber-200 dark:border-slate-700 justify-end">
+        <div className="hidden lg:flex p-4 border-t border-primary/20 justify-end">
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-lg bg-amber-100 dark:bg-slate-700 text-church-brown dark:text-church-gold hover:bg-amber-200 transition-colors"
+            className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
             aria-label={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {sidebarCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronLeft />}
@@ -109,32 +111,32 @@ const Layout: React.FC = () => {
        )}
        
        <div className={`
-         p-4 border-t border-amber-200 dark:border-slate-700 overflow-hidden whitespace-nowrap transition-all duration-300
+         p-4 border-t border-primary/20 overflow-hidden whitespace-nowrap transition-all duration-300
          ${!isMobile && sidebarCollapsed
            ? 'lg:h-0 lg:p-0 lg:group-hover/sidebar:h-0 lg:group-hover/sidebar:p-0 lg:border-none'
            : 'lg:h-auto'
          }
          md:h-0 md:p-0 md:group-hover/sidebar:h-auto md:group-hover/sidebar:p-4
        `}>
-         <div className="bg-amber-50 dark:bg-slate-800 rounded-lg p-3 border border-amber-200 dark:border-slate-700 space-y-3 shadow-sm">
+         <div className="bg-primary/5 rounded-lg p-3 border border-primary/20 space-y-3 shadow-sm">
             <div>
-              <p className="text-[10px] font-bold text-church-brown dark:text-church-gold uppercase truncate">System Status</p>
+              <p className="text-[10px] font-bold text-primary uppercase truncate">System Status</p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="w-2 h-2 rounded-full bg-church-green animate-pulse"></span>
-                <span className="text-xs text-church-brown dark:text-church-gold font-medium">Online</span>
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span className="text-xs text-primary font-medium">Online</span>
               </div>
             </div>
-            
-            <div className="pt-3 border-t border-amber-200 dark:border-slate-600">
+
+            <div className="pt-3 border-t border-primary/20">
                <div className="flex items-center gap-2 mb-2">
-                 <div className="w-6 h-6 rounded-full bg-church-gold flex items-center justify-center text-xs font-bold text-white">
+                 <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-white">
                     {user?.fullName?.charAt(0) || 'A'}
                  </div>
-                 <p className="text-xs font-medium text-church-brown dark:text-church-gold truncate">{user?.fullName || 'User'}</p>
+                 <p className="text-xs font-medium text-primary truncate">{user?.fullName || 'User'}</p>
                </div>
                <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 text-xs text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 rounded transition-colors"
+                className="w-full flex items-center gap-2 text-xs text-secondary hover:bg-secondary/10 p-1.5 rounded transition-colors"
                >
                  <Icons.Logout />
                  <span>Sign Out</span>
@@ -146,7 +148,7 @@ const Layout: React.FC = () => {
   );
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-church-cream to-amber-50 dark:from-slate-900 dark:to-slate-800 transition-colors duration-200 overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-white to-primary/5 dark:from-slate-900 dark:to-slate-800 transition-colors duration-200 overflow-hidden">
       
       {isMobileMenuOpen && (
         <div
@@ -157,7 +159,7 @@ const Layout: React.FC = () => {
       )}
 
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-3/4 max-w-xs bg-gradient-to-b from-church-cream to-white dark:from-slate-800 dark:to-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col
+        fixed inset-y-0 left-0 z-50 w-3/4 max-w-xs bg-gradient-to-b from-white to-primary/5 dark:from-slate-800 dark:to-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
          <SidebarContent isMobile={true} />
@@ -165,7 +167,7 @@ const Layout: React.FC = () => {
 
       <aside
         className={`
-          hidden md:flex flex-col bg-gradient-to-b from-church-cream to-white dark:from-slate-800 dark:to-slate-900 border-r border-amber-200 dark:border-slate-700 shadow-lg
+          hidden md:flex flex-col bg-gradient-to-b from-white to-primary/5 dark:from-slate-800 dark:to-slate-900 border-r border-primary/20 shadow-lg
           transition-all duration-300 ease-in-out z-30 relative group/sidebar
           ${sidebarCollapsed
             ? 'lg:w-20 lg:hover:w-20'
@@ -177,18 +179,18 @@ const Layout: React.FC = () => {
         <SidebarContent />
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gradient-to-br from-church-cream to-amber-50 dark:from-slate-900 dark:to-slate-800">
-        <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-amber-200 dark:border-slate-700 px-4 py-3 flex justify-between items-center md:hidden sticky top-0 z-20 shadow-sm">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gradient-to-br from-white to-primary/5 dark:from-slate-900 dark:to-slate-800">
+        <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-primary/20 px-4 py-3 flex justify-between items-center md:hidden sticky top-0 z-20 shadow-sm">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 -ml-2 text-church-brown dark:text-church-gold hover:bg-amber-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                className="p-2 -ml-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                 aria-label="Open Menu"
               >
                 <Icons.Menu />
               </button>
-              <h1 className="text-lg font-church font-bold text-church-brown dark:text-church-gold flex items-center gap-2">
-                <span className="text-church-gold">✞</span> CHURCH KONET
+              <h1 className="text-lg font-bold text-primary flex items-center gap-2">
+                <span className="text-accent">✞</span> CHURCH KONET
               </h1>
             </div>
         </header>

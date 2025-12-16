@@ -11,6 +11,25 @@ export interface Member {
   opt_in?: boolean;
   createdAt?: number | null;
   updatedAt?: number | null;
+  // Approval fields
+  status?: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  approvedAt?: number | null;
+  rejectionReason?: string;
+}
+
+export interface MemberApprovalRequest {
+  id?: string;
+  memberId: string;
+  action: 'add' | 'edit' | 'delete';
+  requestedData: Partial<Member>;
+  requestedBy: string;
+  requestedAt: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedAt?: number;
+  rejectionReason?: string;
+  deleteReason?: 'Not a Member' | 'Transferred' | 'Ceased to Fellowship' | 'Deceased';
 }
 
 export enum MessageType {

@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import {
   Member,
+  MemberApprovalRequest,
   User,
   ActivityLogEntry,
   MessageTemplate,
@@ -82,12 +83,20 @@ interface MembersContextType {
   users: User[];
   activityLog: ActivityLogEntry[];
   sentMessages: SentMessage[];
+  approvalRequests: MemberApprovalRequest[];
 
   addMember: (m: Partial<Member>) => Promise<string>; // returns doc id
   updateMember: (id: string, updates: Partial<Member>) => Promise<void>;
-  deleteMember: (id: string) => Promise<void>;
+  deleteMember: (id: string, reason?: string) => Promise<void>;
   getMember: (id: string) => Member | undefined;
   importMembersFromCSV: (csvData: string) => Promise<{ added: number; failed: number }>;
+
+  // Approval functions
+  requestMemberAdd: (memberData: Partial<Member>) => Promise<string>;
+  requestMemberEdit: (id: string, updates: Partial<Member>) => Promise<void>;
+  requestMemberDelete: (id: string, reason: 'Not a Member' | 'Transferred' | 'Ceased to Fellowship' | 'Deceased') => Promise<void>;
+  approveRequest: (requestId: string) => Promise<void>;
+  rejectRequest: (requestId: string, reason: string) => Promise<void>;
 
   addOrganization: (name: string) => Promise<void>;
   updateOrganization: (oldName: string, newName: string) => Promise<void>;
@@ -105,7 +114,7 @@ interface MembersContextType {
 const MembersContext = createContext<MembersContextType | undefined>(undefined);
 
 export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, isAdmin } = useAuth();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [organizations, setOrganizations] = useState<string[]>([]);
@@ -113,6 +122,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [users, setUsers] = useState<User[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [sentMessages, setSentMessages] = useState<SentMessage[]>([]);
+  const [approvalRequests, setApprovalRequests] = useState<MemberApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -177,6 +187,12 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setActivityLog(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as ActivityLogEntry)))
     );
 
+    const unsubApprovalRequests = onSnapshot(
+      query(collection(db, "member_approval_requests"), orderBy("requestedAt", "desc")),
+      (snap) =>
+        setApprovalRequests(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as MemberApprovalRequest)))
+    );
+
     setLoading(false);
 
     return () => {
@@ -185,6 +201,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
       unsubTemplates();
       unsubSent();
       unsubLogs();
+      unsubApprovalRequests();
     };
   }, [user, authLoading]);
 
@@ -216,36 +233,43 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const addMember = async (memberPartial: Partial<Member>) => {
     if (!db) throw new Error("Database not initialized");
 
-    console.log("🔵 Starting addMember...", { user: user?.email, authenticated: !!user });
+    console.log("🔵 Starting addMember...", { user: user?.email, authenticated: !!user, isAdmin });
 
     try {
-      const memberCode = await generateMemberCode();
-      console.log("✅ Member code generated:", memberCode);
+      // If admin, add immediately
+      if (isAdmin) {
+        const memberCode = await generateMemberCode();
+        console.log("✅ Member code generated:", memberCode);
 
-      const payload: any = {
-        memberCode,
-        fullName: formatProperCase(memberPartial.fullName || ""),
-        gender: memberPartial.gender || null,
-        phone: memberPartial.phone || null,
-        birthday: memberPartial.birthday || null,
-        organization: formatProperCase(memberPartial.organization || ""),
-        notes: memberPartial.notes || null,
-        opt_in: typeof memberPartial.opt_in === "boolean" ? memberPartial.opt_in : true,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
+        const payload: any = {
+          memberCode,
+          fullName: formatProperCase(memberPartial.fullName || ""),
+          gender: memberPartial.gender || null,
+          phone: memberPartial.phone || null,
+          birthday: memberPartial.birthday || null,
+          organization: formatProperCase(memberPartial.organization || ""),
+          notes: memberPartial.notes || null,
+          opt_in: typeof memberPartial.opt_in === "boolean" ? memberPartial.opt_in : true,
+          status: 'approved',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
 
-      // remove undefined
-      Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+        // remove undefined
+        Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
-      console.log("📝 Attempting to write to Firestore:", payload);
-      const docRef = await addDoc(collection(db, "members"), cleanForFirestore(payload));
-      console.log("✅ Document created with ID:", docRef.id);
-      
-      // update local state optimistically
-      setMembers((prev) => [{ id: docRef.id, ...payload }, ...prev]);
-      await logActivity("Add Member", `Added ${payload.fullName}`);
-      return docRef.id;
+        console.log("📝 Attempting to write to Firestore:", payload);
+        const docRef = await addDoc(collection(db, "members"), cleanForFirestore(payload));
+        console.log("✅ Document created with ID:", docRef.id);
+        
+        // update local state optimistically
+        setMembers((prev) => [{ id: docRef.id, ...payload }, ...prev]);
+        await logActivity("Add Member", `Added ${payload.fullName}`);
+        return docRef.id;
+      } else {
+        // If user, create approval request
+        return await requestMemberAdd(memberPartial);
+      }
     } catch (e: any) {
       console.error("❌ addMember error:", e);
       console.error("Error code:", e.code);
@@ -266,36 +290,212 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!db) throw new Error("Database not initialized");
 
     try {
-      const cleaned: Record<string, any> = {};
-      if (updates.fullName !== undefined) cleaned.fullName = formatProperCase(updates.fullName);
-      if (updates.gender !== undefined) cleaned.gender = updates.gender;
-      if (updates.phone !== undefined) cleaned.phone = updates.phone;
-      if (updates.birthday !== undefined) cleaned.birthday = updates.birthday;
-      if (updates.organization !== undefined) cleaned.organization = formatProperCase(updates.organization);
-      if (updates.notes !== undefined) cleaned.notes = updates.notes;
-      if (typeof updates.opt_in !== "undefined") cleaned.opt_in = updates.opt_in;
+      // If admin, update immediately
+      if (isAdmin) {
+        const cleaned: Record<string, any> = {};
+        if (updates.fullName !== undefined) cleaned.fullName = formatProperCase(updates.fullName);
+        if (updates.gender !== undefined) cleaned.gender = updates.gender;
+        if (updates.phone !== undefined) cleaned.phone = updates.phone;
+        if (updates.birthday !== undefined) cleaned.birthday = updates.birthday;
+        if (updates.organization !== undefined) cleaned.organization = formatProperCase(updates.organization);
+        if (updates.notes !== undefined) cleaned.notes = updates.notes;
+        if (typeof updates.opt_in !== "undefined") cleaned.opt_in = updates.opt_in;
 
-      cleaned.updatedAt = Date.now();
+        cleaned.updatedAt = Date.now();
 
-      await updateDoc(doc(db, "members", id), cleanForFirestore(cleaned));
+        await updateDoc(doc(db, "members", id), cleanForFirestore(cleaned));
 
-      setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ...cleaned } : m)));
+        setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ...cleaned } : m)));
 
-      await logActivity("Update Member", `Updated member ${id}`);
+        await logActivity("Update Member", `Updated member ${id}`);
+      } else {
+        // If user, create approval request
+        await requestMemberEdit(id, updates);
+      }
     } catch (e) {
       console.error("updateMember error", e);
       throw e;
     }
   };
 
-  const deleteMember = async (id: string) => {
+  const deleteMember = async (id: string, reason?: string) => {
     if (!db) throw new Error("Database not initialized");
     try {
-      await deleteDoc(doc(db, "members", id));
-      setMembers((prev) => prev.filter((m) => m.id !== id));
-      await logActivity("Delete Member", `Deleted ${id}`);
+      // If admin, delete immediately
+      if (isAdmin) {
+        await deleteDoc(doc(db, "members", id));
+        setMembers((prev) => prev.filter((m) => m.id !== id));
+        await logActivity("Delete Member", `Deleted ${id}${reason ? ` - ${reason}` : ''}`);
+      } else {
+        // If user, create approval request
+        const member = getMember(id);
+        if (!member) throw new Error("Member not found");
+        
+        const request: MemberApprovalRequest = {
+          memberId: id,
+          action: 'delete',
+          requestedData: member,
+          requestedBy: user?.email || 'Unknown',
+          requestedAt: Date.now(),
+          status: 'pending',
+          deleteReason: reason as any
+        };
+        
+        await addDoc(collection(db, "member_approval_requests"), cleanForFirestore(request));
+        await logActivity("Request Delete Member", `Requested deletion of ${id} - ${reason}`);
+      }
     } catch (e) {
       console.error("deleteMember error", e);
+      throw e;
+    }
+  };
+
+  // Approval functions
+  const requestMemberAdd = async (memberData: Partial<Member>) => {
+    if (!db || !user) throw new Error("Database not initialized or user not authenticated");
+    
+    try {
+      const request: MemberApprovalRequest = {
+        memberId: '', // Will be set when approved
+        action: 'add',
+        requestedData: memberData,
+        requestedBy: user.email,
+        requestedAt: Date.now(),
+        status: 'pending'
+      };
+      
+      const docRef = await addDoc(collection(db, "member_approval_requests"), cleanForFirestore(request));
+      await logActivity("Request Add Member", `Requested addition of ${memberData.fullName}`);
+      return docRef.id;
+    } catch (e) {
+      console.error("requestMemberAdd error", e);
+      throw e;
+    }
+  };
+
+  const requestMemberEdit = async (id: string, updates: Partial<Member>) => {
+    if (!db || !user) throw new Error("Database not initialized or user not authenticated");
+    
+    try {
+      const member = getMember(id);
+      if (!member) throw new Error("Member not found");
+      
+      const request: MemberApprovalRequest = {
+        memberId: id,
+        action: 'edit',
+        requestedData: { ...member, ...updates },
+        requestedBy: user.email,
+        requestedAt: Date.now(),
+        status: 'pending'
+      };
+      
+      await addDoc(collection(db, "member_approval_requests"), cleanForFirestore(request));
+      await logActivity("Request Edit Member", `Requested edit of ${id}`);
+    } catch (e) {
+      console.error("requestMemberEdit error", e);
+      throw e;
+    }
+  };
+
+  const requestMemberDelete = async (id: string, reason: 'Not a Member' | 'Transferred' | 'Ceased to Fellowship' | 'Deceased') => {
+    if (!db || !user) throw new Error("Database not initialized or user not authenticated");
+    
+    try {
+      const member = getMember(id);
+      if (!member) throw new Error("Member not found");
+      
+      const request: MemberApprovalRequest = {
+        memberId: id,
+        action: 'delete',
+        requestedData: member,
+        requestedBy: user.email,
+        requestedAt: Date.now(),
+        status: 'pending',
+        deleteReason: reason
+      };
+      
+      await addDoc(collection(db, "member_approval_requests"), cleanForFirestore(request));
+      await logActivity("Request Delete Member", `Requested deletion of ${id} - ${reason}`);
+    } catch (e) {
+      console.error("requestMemberDelete error", e);
+      throw e;
+    }
+  };
+
+  const approveRequest = async (requestId: string) => {
+    if (!db || !user || !isAdmin) throw new Error("Database not initialized, user not authenticated, or not admin");
+    
+    try {
+      const requestRef = doc(db, "member_approval_requests", requestId);
+      const requestSnap = await getDoc(requestRef);
+      const request = requestSnap.data() as MemberApprovalRequest;
+      
+      if (!request) throw new Error("Request not found");
+      
+      // Update request status
+      await updateDoc(requestRef, {
+        status: 'approved' as const,
+        reviewedBy: user.email,
+        reviewedAt: Date.now()
+      });
+      
+      // Perform the requested action
+      switch (request.action) {
+        case 'add':
+          const memberCode = await generateMemberCode();
+          await addDoc(collection(db, "members"), {
+            ...cleanForFirestore(request.requestedData),
+            memberCode,
+            status: 'approved',
+            approvedBy: user.email,
+            approvedAt: Date.now(),
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          });
+          break;
+          
+        case 'edit':
+          await updateDoc(doc(db, "members", request.memberId), {
+            ...cleanForFirestore(request.requestedData),
+            status: 'approved',
+            approvedBy: user.email,
+            approvedAt: Date.now(),
+            updatedAt: Date.now()
+          });
+          break;
+          
+        case 'delete':
+          await deleteDoc(doc(db, "members", request.memberId));
+          break;
+      }
+      
+      await logActivity("Approve Request", `Approved ${request.action} request for ${request.memberId || 'new member'}`);
+    } catch (e) {
+      console.error("approveRequest error", e);
+      throw e;
+    }
+  };
+
+  const rejectRequest = async (requestId: string, reason: string) => {
+    if (!db || !user || !isAdmin) throw new Error("Database not initialized, user not authenticated, or not admin");
+    
+    try {
+      const requestRef = doc(db, "member_approval_requests", requestId);
+      const requestSnap = await getDoc(requestRef);
+      const request = requestSnap.data() as MemberApprovalRequest;
+      
+      if (!request) throw new Error("Request not found");
+      
+      await updateDoc(requestRef, {
+        status: 'rejected' as const,
+        rejectionReason: reason,
+        reviewedBy: user.email,
+        reviewedAt: Date.now()
+      });
+      
+      await logActivity("Reject Request", `Rejected ${request.action} request for ${request.memberId || 'new member'} - ${reason}`);
+    } catch (e) {
+      console.error("rejectRequest error", e);
       throw e;
     }
   };
@@ -386,11 +586,17 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         users,
         activityLog,
         sentMessages,
+        approvalRequests,
         addMember,
         updateMember,
         deleteMember,
         getMember,
         importMembersFromCSV,
+        requestMemberAdd,
+        requestMemberEdit,
+        requestMemberDelete,
+        approveRequest,
+        rejectRequest,
         addOrganization,
         updateOrganization,
         deleteOrganization,

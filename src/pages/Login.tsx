@@ -5,16 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 const Login: React.FC = () => {
-  // State for toggling between Login and Sign Up
-  const [isLogin, setIsLogin] = useState(true);
-  
   // Form Fields
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { login, signup } = useAuth();
+  const { login } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,37 +20,26 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || (!isLogin && !name)) {
-        addToast('Please fill in all required fields', 'error');
+    if (!email || !password) {
+        addToast('Please enter both email and password', 'error');
         return;
     }
 
     setIsSubmitting(true);
     try {
-        let success = false;
-        if (isLogin) {
-            success = await login(email, password);
-        } else {
-            success = await signup(name, email, password);
-        }
+        const success = await login(email, password);
 
         if (success) {
-            addToast(isLogin ? 'Welcome back!' : 'Account created successfully!', 'success');
+            addToast('Welcome back!', 'success');
             navigate(from, { replace: true });
         } else {
-            addToast('Authentication failed. Please check your details.', 'error');
+            addToast('Invalid credentials. Please try again.', 'error');
         }
     } catch (error) {
         addToast('An error occurred. Please try again.', 'error');
     } finally {
         setIsSubmitting(false);
     }
-  };
-
-  const toggleMode = () => {
-      setIsLogin(!isLogin);
-      // Clear sensitive fields or reset form if desired
-      setPassword('');
   };
 
   return (
@@ -66,76 +51,70 @@ const Login: React.FC = () => {
                     ⛪
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {isLogin ? 'Welcome Back' : 'Create Account'}
+                    Church Konet Login
                 </h2>
                 <p className="text-slate-500 dark:text-slate-400 mt-2">
-                    {isLogin ? 'Sign in to your dashboard' : 'Get started with Church Konet'}
+                    Sign in to access your dashboard
                 </p>
+                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                        💡 Use credentials provided by the administrator
+                    </p>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-                {!isLogin && (
-                    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
-                        <input 
-                            type="text" 
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                            placeholder="John Doe"
-                            autoComplete="name"
-                        />
-                    </div>
-                )}
-
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
-                    <input 
-                        type="email" 
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Email Address
+                    </label>
+                    <input
+                        type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-light focus:border-primary-light outline-none transition-all"
                         placeholder="admin@churchkonet.com"
                         autoComplete="email"
+                        required
                     />
                 </div>
+                
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Password</label>
-                    <input 
-                        type="password" 
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Password
+                    </label>
+                    <input
+                        type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                         placeholder="••••••••"
-                        autoComplete={isLogin ? "current-password" : "new-password"}
+                        autoComplete="current-password"
+                        required
                     />
                 </div>
 
-                <button 
+                <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-200 dark:shadow-none disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+                    className="w-full py-3.5 px-4 bg-primary hover:bg-primary-dark text-text-light font-bold rounded-xl transition-all shadow-lg shadow-primary/20 dark:shadow-none disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                     {isSubmitting ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (isLogin ? 'Sign In' : 'Create Account')}
+                    ) : (
+                        'Sign In'
+                    )}
                 </button>
             </form>
 
             <div className="mt-6 text-center">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {isLogin ? "Don't have an account? " : "Already have an account? "}
-                    <button 
-                        onClick={toggleMode}
-                        className="text-indigo-600 dark:text-indigo-400 font-medium cursor-pointer hover:underline focus:outline-none"
-                    >
-                        {isLogin ? 'Sign Up' : 'Sign In'}
-                    </button>
+                <p className="text-xs text-slate-400">
+                    For account assistance, please contact your administrator
                 </p>
             </div>
         </div>
         <div className="bg-slate-50 dark:bg-slate-700/30 p-4 text-center border-t border-slate-100 dark:border-slate-700">
-            <p className="text-xs text-slate-400">Protected by secure authentication</p>
+            <p className="text-xs text-slate-400">Secure Firebase Authentication</p>
         </div>
       </div>
     </div>

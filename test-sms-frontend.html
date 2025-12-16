@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMS Connectivity Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 SMS Integration Test Dashboard</h1>
+        
+        <h3>🚨 Setup Instructions (Required)</h3>
+        <div style="padding: 15px; background: #fff3cd; border-radius: 4px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
+            <strong>⚠️ Important:</strong> This test requires a separate mock API server to be running.
+        </div>
+        <p><strong>Step 1:</strong> Install dependencies (if not already installed):</p>
+        <pre>npm install express cors</pre>
+        <p><strong>Step 2:</strong> Start the mock API server in a separate terminal:</p>
+        <pre>node api-mock.js</pre>
+        <p><strong>Step 3:</strong> Make sure you see: "Mock SMS API server running at http://localhost:3001"</p>
+        <p><strong>Step 4:</strong> Use this test page to verify SMS functionality</p>
+        <p><strong>Step 5:</strong> For real SMS testing, deploy to Vercel where the actual API endpoints will work</p>
+        
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+        
+        <h2>Connectivity Tests</h2>
+        <p>This tool will test your SMSOnlineGH API connectivity and help identify issues.</p>
+        
+        <div>
+            <h3>Test Balance API</h3>
+            <button class="test-button" onclick="testBalance()">Check Balance</button>
+            <div id="balance-result"></div>
+        </div>
+        
+        <div>
+            <h3>Test Send SMS API</h3>
+            <p>Use a test phone number (e.g., 233244567890)</p>
+            <input type="text" id="test-phone" placeholder="Enter phone number" style="padding: 8px; margin: 5px; width: 200px;">
+            <button class="test-button" onclick="testSendSMS()">Send Test SMS</button>
+            <div id="send-result"></div>
+        </div>
+        
+        <div>
+            <h3>Raw Console Output</h3>
+            <div id="console-output" style="background: #000; color: #0f0; padding: 10px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const consoleOutput = document.getElementById('console-output');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            consoleOutput.innerHTML += `[${timestamp}] ${message}\n`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        async function testBalance() {
+            const resultDiv = document.getElementById('balance-result');
+            resultDiv.innerHTML = 'Testing... <span class="loading"></span>';
+            
+            try {
+                log('Starting balance test...');
+                log('Fetching from: http://localhost:3001/api/test-sms-connectivity (mock API)');
+                
+                const response = await fetch('http://localhost:3001/api/test-sms-connectivity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ action: 'balance' })
+                });
+
+                log(`Response status: ${response.status} ${response.statusText}`);
+                
+                // Get raw response first
+                const responseText = await response.text();
+                log(`Raw response: ${responseText.substring(0, 500)}`);
+
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    log(`JSON parse error: ${parseError.message}`);
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ JSON Parse Error</strong><br>
+                            ${parseError.message}<br>
+                            <pre>Raw response: ${responseText}</pre>
+                        </div>
+                    `;
+                    return;
+                }
+
+                log(`Balance test response: ${JSON.stringify(result, null, 2)}`);
+
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>✅ Balance Check Successful</strong><br>
+                            Balance: ${JSON.stringify(result.balance)}<br>
+                            <small>API is working correctly!</small>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ Balance Check Failed</strong><br>
+                            Error: ${result.error}<br>
+                            Details: ${JSON.stringify(result.details, null, 2)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                log(`Balance test error: ${error.message}`);
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Network Error</strong><br>
+                        ${error.message}<br>
+                        <small>Make sure the development server is running and API endpoints are accessible</small>
+                    </div>
+                `;
+            }
+        }
+
+        async function testSendSMS() {
+            const phone = document.getElementById('test-phone').value;
+            const resultDiv = document.getElementById('send-result');
+            
+            if (!phone) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Please enter a phone number</strong>
+                    </div>
+                `;
+                return;
+            }
+
+            resultDiv.innerHTML = 'Testing... <span class="loading"></span>';
+            
+            try {
+                log(`Starting SMS test to ${phone}...`);
+                log('Fetching from: http://localhost:3001/api/test-sms-connectivity (mock API)');
+                
+                const response = await fetch('http://localhost:3001/api/test-sms-connectivity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ action: 'send-test', phone: phone })
+                });
+
+                log(`Response status: ${response.status} ${response.statusText}`);
+                
+                // Get raw response first
+                const responseText = await response.text();
+                log(`Raw response: ${responseText.substring(0, 500)}`);
+
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    log(`JSON parse error: ${parseError.message}`);
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ JSON Parse Error</strong><br>
+                            ${parseError.message}<br>
+                            <pre>Raw response: ${responseText}</pre>
+                        </div>
+                    `;
+                    return;
+                }
+
+                log(`SMS test response: ${JSON.stringify(result, null, 2)}`);
+
+                if (result.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>✅ Test SMS Sent Successfully</strong><br>
+                            Response: ${JSON.stringify(result.response, null, 2)}<br>
+                            <small>API is working correctly!</small>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ Test SMS Failed</strong><br>
+                            Error: ${result.error}<br>
+                            Details: ${JSON.stringify(result.details, null, 2)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                log(`SMS test error: ${error.message}`);
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Network Error</strong><br>
+                        ${error.message}<br>
+                        <small>Make sure the development server is running and API endpoints are accessible</small>
+                    </div>
+                `;
+            }
+        }
+
+        // Clear console on load
+        log('SMS Test Console Initialized');
+    </script>
+</body>
+</html>

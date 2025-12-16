@@ -7,10 +7,11 @@ import Broadcast from './pages/Broadcast';
 import Members from './pages/Members';
 import MemberProfile from './pages/MemberProfile';
 import Settings from './pages/Settings';
+import ApprovalManagement from './pages/ApprovalManagement';
 import Login from './pages/Login';
 import Welcome from './pages/Welcome';
 import PostLoginWelcome from './pages/PostLoginWelcome';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import { ProtectedRoute, AdminProtectedRoute } from './components/ProtectedRoute';
 import { ToastProvider } from './context/ToastContext';
 import { MembersProvider } from './context/MembersContext';
 import { SettingsProvider } from './context/SettingsContext';
@@ -42,6 +43,11 @@ const App: React.FC = () => {
                   <Route path="/members" element={<Members />} />
                   <Route path="/members/:id" element={<MemberProfile />} />
                   <Route path="/settings" element={<Settings />} />
+                </Route>
+
+                {/* Admin-only Routes */}
+                <Route element={<AdminProtectedRoute><Layout /></AdminProtectedRoute>}>
+                  <Route path="/approval-management" element={<ApprovalManagement />} />
                 </Route>
 
                 {/* Catch all redirect to dashboard (which handles auth redirect) or welcome */}

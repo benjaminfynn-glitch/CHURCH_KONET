@@ -5,6 +5,7 @@ import {
   sendBroadcastSMS,
   scheduleSMS,
   getBalance,
+  handleDeliveryPush,
 } from '../services/smsApi';
 
 export function useSMS() {
@@ -36,5 +37,6 @@ export function useSMS() {
     sendBroadcastSMS: (data: any) => handle(() => sendBroadcastSMS(data)),
     scheduleSMS: (data: any) => handle(() => scheduleSMS(data)),
     getBalance: () => handle(() => getBalance()),
+    handleDeliveryPush: (data: any) => handle(() => handleDeliveryPush(data)),
   };
 }

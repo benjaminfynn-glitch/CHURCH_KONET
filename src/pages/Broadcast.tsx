@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { sendBroadcast, getBalance } from '../services/api';
+import { sendBroadcast, sendPersonalizedSMS, getBalance } from '../services/api';
 import { MessageType, SMSRequest, SMSDestinationPersonalized, SentMessage } from '../types';
 import { useToast } from '../context/ToastContext';
 import { useMembers } from '../context/MembersContext';
@@ -17,7 +17,7 @@ const Broadcast: React.FC = () => {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [isPersonalized, setIsPersonalized] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [currentBalance, setCurrentBalance] = useState(1042.50); // Mock default
+  // Balance checking removed - application should not block SMS sending based on balance verification
   
   // Scheduling State
   const [scheduleType, setScheduleType] = useState<'now' | 'later'>('now');
@@ -42,10 +42,7 @@ const Broadcast: React.FC = () => {
   const [isBirthdayFlow, setIsBirthdayFlow] = useState(false);
   const [isResendFlow, setIsResendFlow] = useState(false);
 
-  // Load Balance on mount
-  useEffect(() => {
-    getBalance().then(res => setCurrentBalance(res.balance));
-  }, []);
+  // Balance checking removed - application should not block SMS sending based on balance verification
 
   // Check for navigation state (e.g. from Dashboard Birthday Widget)
   useEffect(() => {
@@ -61,9 +58,14 @@ const Broadcast: React.FC = () => {
         
         if (initialMessage) {
             setMessageText(initialMessage);
-            // Auto-detect personalization variable
-            if (initialMessage.includes('{$name}')) {
-                setIsPersonalized(true);
+            // For birthday messages, ensure they are treated as regular broadcasts
+            if (isBirthday) {
+                setIsPersonalized(false);
+            } else {
+                // Auto-detect personalization variable for non-birthday messages
+                if (initialMessage.includes('{$name}')) {
+                    setIsPersonalized(true);
+                }
             }
         }
     }
@@ -114,7 +116,7 @@ const Broadcast: React.FC = () => {
       return recipientCount * smsStats.totalCost;
   }, [selectedMembers, isPersonalized, members, smsStats.totalCost, destinationMode, uniqueRecipientsList]);
 
-  const isBalanceLow = estimatedCost > currentBalance;
+  // Balance checking removed - application should not block SMS sending based on balance verification
 
   // Effect: Auto-insert {$name} when personalization is toggled ON (Only if not already present)
   useEffect(() => {
@@ -215,17 +217,19 @@ const Broadcast: React.FC = () => {
   };
 
   const confirmSend = async () => {
-    if (isBalanceLow) {
-        addToast('Insufficient SMS balance.', 'error');
-        return;
-    }
+    // Balance checking removed - application should not block SMS sending based on balance verification
+    // SMSONLINEGH will handle all validation and processing
     setIsSending(true);
 
     const targets = members.filter(m => selectedMembers.includes(m.id));
     let destinations: string[] | SMSDestinationPersonalized[];
 
-    // LOGIC: Deduplication vs Personalization
-    if (isPersonalized) {
+    // For birthday messages, always treat as regular broadcast (no personalization)
+    if (isBirthdayFlow) {
+      // BIRTHDAY: Remove duplicate phone numbers - send one message per unique number
+      const uniquePhones = new Set<string>(targets.map(m => m.phone));
+      destinations = Array.from(uniquePhones);
+    } else if (isPersonalized) {
       // PERSONALIZED: Allow duplicates (e.g. twins sharing a phone number for birthday wishes)
       // Each entry needs specific values (name)
       destinations = targets.map(m => ({
@@ -242,7 +246,7 @@ const Broadcast: React.FC = () => {
     const payload: SMSRequest = {
       text: messageText,
       type: MessageType.Standard,
-      sender: 'CHURCH', 
+      sender: 'BETHELKONET',
       destinations: destinations,
     };
 
@@ -254,15 +258,28 @@ const Broadcast: React.FC = () => {
     }
 
     try {
+      console.log('=== FRONTEND BROADCAST DEBUG ===');
+      console.log('Sending broadcast with payload:', JSON.stringify({
+        text: messageText,
+        destinations: destinations,
+        sender: 'CHURCH',
+        schedule: scheduleType === 'later' ? scheduleTime : undefined
+      }, null, 2));
+      console.log('Targets count:', targets.length);
+      console.log('Personalized:', isPersonalized);
+      console.log('Birthday Flow:', isBirthdayFlow);
+      console.log('=== END FRONTEND DEBUG ===');
+
+      // Always use the regular broadcast endpoint - it can handle both personalized and non-personalized messages
       await sendBroadcast(payload);
       
       // LOGGING & HISTORY
       const timestamp = new Date().toISOString();
       
-      // For logging history, we still want to log against the member ID, 
+      // For logging history, we still want to log against the member ID,
       // even if the physical SMS was de-duplicated.
       targets.forEach(member => {
-         const finalContent = isPersonalized ? messageText.replace('{$name}', member.fullName?.split(' ')[0]) : messageText;
+         const finalContent = isBirthdayFlow || isPersonalized ? messageText.replace('{$name}', member.fullName?.split(' ')[0]) : messageText;
          
          const logEntry: SentMessage = {
              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -307,6 +324,10 @@ const Broadcast: React.FC = () => {
       const action = scheduleType === 'later' ? 'scheduled' : 'sent';
       addToast(`Broadcast ${action} successfully!`, 'success');
     } catch (e) {
+      console.error('=== FRONTEND BROADCAST ERROR ===');
+      console.error('Broadcast failed:', e);
+      console.error('Error details:', JSON.stringify(e, null, 2));
+      console.error('=== END FRONTEND ERROR ===');
       addToast('Failed to send broadcast. Please try again.', 'error');
     } finally {
       setIsSending(false);
@@ -315,7 +336,9 @@ const Broadcast: React.FC = () => {
 
   const resolveMessagePreview = (name: string) => {
       const firstName = name.split(' ')[0];
-      return messageText.replace('{$name}', firstName);
+      // For birthday messages, the name is already injected, so just return the message as is
+      // For non-birthday messages, replace the {$name} placeholder
+      return isBirthdayFlow ? messageText : messageText.replace('{$name}', firstName);
   };
 
   return (
@@ -588,7 +611,7 @@ const Broadcast: React.FC = () => {
                <button 
                  onClick={handlePreview}
                  disabled={selectedMembers.length === 0 || !messageText}
-                 className="w-full bg-indigo-600 text-white py-3 rounded-xl font-medium hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed transition-colors shadow-sm"
+                 className="w-full bg-primary text-text-light py-3 rounded-xl font-medium hover:bg-primary-dark disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed transition-colors shadow-sm"
                >
                  Broadcast
                </button>

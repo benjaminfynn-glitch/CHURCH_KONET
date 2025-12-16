@@ -1,0 +1,10 @@
+{
+  "text": "Test message",
+  "sender": "CHURCH",
+  "destinations": [
+    {
+      "number": "233243650040",
+      "values": ["Ben"]
+    }
+  ]
+}

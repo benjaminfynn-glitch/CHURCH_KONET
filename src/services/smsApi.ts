@@ -3,10 +3,14 @@ export async function sendSMS(data: {
   destination: string;
   sender?: string;
 }) {
-  const res = await fetch('/api/send-sms', {
+  const res = await fetch('http://localhost:3000/api/send-sms', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      text: data.text,
+      destinations: [data.destination],
+      sender: data.sender
+    }),
   });
 
   return res.json();
@@ -16,7 +20,7 @@ export async function sendPersonalisedSMS(data: {
   messages: { destination: string; text: string }[];
   sender?: string;
 }) {
-  const res = await fetch('/api/send-personalised-sms', {
+  const res = await fetch('http://localhost:3000/api/send-personalised-sms', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -30,7 +34,7 @@ export async function sendBroadcastSMS(data: {
   destinations: string[];
   sender?: string;
 }) {
-  const res = await fetch('/api/broadcast', {
+  const res = await fetch('http://localhost:3000/api/broadcast', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -45,7 +49,7 @@ export async function scheduleSMS(data: {
   schedule: string;
   sender?: string;
 }) {
-  const res = await fetch('/api/schedule-sms', {
+  const res = await fetch('http://localhost:3000/api/schedule-sms', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -55,6 +59,18 @@ export async function scheduleSMS(data: {
 }
 
 export async function getBalance() {
-  const res = await fetch('/api/balance');
+  const res = await fetch('http://localhost:3000/api/balance', {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return res.json();
+}
+
+export async function handleDeliveryPush(data: any) {
+  const res = await fetch('http://localhost:3000/api/delivery-push', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
   return res.json();
 }
