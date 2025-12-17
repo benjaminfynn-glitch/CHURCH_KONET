@@ -41,7 +41,7 @@ export default function OrganizationsPage() {
               value={newOrg}
               onChange={(e) => setNewOrg(e.target.value)}
             />
-            <button className="px-3 py-2 bg-primary text-text-light rounded" onClick={handleAdd}>
+            <button className="px-3 py-2 bg-methodist-blue text-methodist-white rounded hover:bg-opacity-90" onClick={handleAdd}>
               Add
             </button>
           </div>

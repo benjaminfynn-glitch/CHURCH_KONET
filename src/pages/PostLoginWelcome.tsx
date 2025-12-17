@@ -31,7 +31,7 @@ const PostLoginWelcome: React.FC = () => {
         {/* Main Welcome Card */}
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700 animate-in fade-in zoom-in duration-500">
           {/* Header Section with Decorative Elements */}
-          <div className="relative bg-gradient-to-r from-primary to-secondary dark:from-primary-dark dark:to-secondary-dark p-8 md:p-12">
+          <div className="relative bg-gradient-to-r from-methodist-blue to-methodist-red p-8 md:p-12">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
             
@@ -90,7 +90,7 @@ const PostLoginWelcome: React.FC = () => {
             <div className="text-center animate-in fade-in duration-700 delay-600">
               <button
                 onClick={handleContinueToDashboard}
-                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-primary to-secondary hover:from-primary-dark hover:to-secondary-dark text-white font-bold rounded-xl transition-all shadow-lg shadow-primary/20 dark:shadow-primary-dark/20 hover:shadow-xl hover:scale-105"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-methodist-blue to-methodist-red hover:from-methodist-blue/90 hover:to-methodist-red/90 text-methodist-white font-bold rounded-xl transition-all shadow-lg shadow-methodist-blue/20 hover:shadow-xl hover:scale-105"
               >
                 Continue to Dashboard
                 <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

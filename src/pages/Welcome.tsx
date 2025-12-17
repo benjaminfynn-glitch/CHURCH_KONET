@@ -37,7 +37,7 @@ const Welcome: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
           <Link 
             to="/login"
-            className="px-8 py-4 bg-primary text-text-light font-bold rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 dark:shadow-primary-dark/20 text-center"
+            className="px-8 py-4 bg-methodist-blue text-methodist-white font-bold rounded-xl hover:bg-opacity-90 transition-all shadow-lg shadow-methodist-blue/20 text-center"
           >
             Get Started
           </Link>

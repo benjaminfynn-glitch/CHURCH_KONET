@@ -110,7 +110,7 @@ export default function MembersPage() {
             <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} rows={8} className="w-full rounded border p-2 font-mono" />
             <div className="flex justify-end gap-2 mt-3">
               <button onClick={() => setImportOpen(false)} className="px-3 py-2 rounded bg-gray-100">Cancel</button>
-              <button onClick={handleImport} className="px-3 py-2 rounded bg-primary text-text-light">Import</button>
+              <button onClick={handleImport} className="px-3 py-2 rounded bg-methodist-blue text-methodist-white hover:bg-opacity-90">Import</button>
             </div>
           </div>
         </div>

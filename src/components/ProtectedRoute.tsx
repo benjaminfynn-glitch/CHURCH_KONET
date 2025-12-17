@@ -56,7 +56,7 @@ export const AdminProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ c
           </div>
           <button
             onClick={() => window.location.href = '/dashboard'}
-            className="px-6 py-3 bg-primary hover:bg-primary-dark text-text-light font-medium rounded-lg transition-colors"
+            className="px-6 py-3 bg-methodist-blue hover:bg-opacity-90 text-methodist-white font-medium rounded-lg transition-colors"
           >
             Return to Dashboard
           </button>

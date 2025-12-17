@@ -7,26 +7,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#1976D2',  // Rich Blue
-          light: '#90CAF9',    // Light Blue
-          dark: '#0D47A1',     // Dark Blue
+        methodist: {
+          blue: '#0B3C5D',    // Royal Blue - authority, trust
+          red: '#B11226',     // Red - faith, sacrifice, emphasis
+          gold: '#C9A227',    // Gold - divine glory, excellence
+          white: '#FFFFFF',   // White - purity, clarity
         },
-        secondary: {
-          DEFAULT: '#B71C1C',  // Deep Red
-          light: '#E57373',    // Light Red
-          dark: '#670A0A',     // Dark Red
-        },
-        accent: {
-          DEFAULT: '#F57F17',  // Vibrant Gold
-          light: '#FFB74D',    // Light Gold
-          dark: '#C41C00',     // Dark Gold
-        },
-        text: {
-          primary: '#212121',    // Dark Gray
-          secondary: '#757575',  // Medium Gray
-          light: '#FFFFFF',      // White
-        },
+        textPrimary: '#0F172A',  // Dark Text
+        textMuted: '#475569',    // Muted Text
+        borderGray: '#E2E8F0',   // Border Gray
+        lightGray: '#F8FAFC',    // Light Gray
       },
     },
   },
