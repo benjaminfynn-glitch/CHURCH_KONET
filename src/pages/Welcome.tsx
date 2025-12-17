@@ -4,17 +4,23 @@ import { Link } from 'react-router-dom';
 
 const Welcome: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans relative">
-      <div className="church-background-light"></div>
+    <div className="min-h-screen bg-white flex flex-col font-sans">
       {/* Navbar */}
       <nav className="w-full px-6 py-4 flex justify-between items-center max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
           <span className="text-2xl">⛪</span>
           <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">CHURCH KONET</h1>
         </div>
-        <Link 
+        <Link
           to="/login"
-          className="px-5 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-white font-medium rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-sm shadow-sm"
+          className="px-5 py-2.5 font-medium rounded-lg border transition-colors text-sm shadow-sm"
+          style={{
+            backgroundColor: '#0B3C5D',
+            color: '#FFFFFF',
+            borderColor: '#0B3C5D'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#072B43'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0B3C5D'}
         >
           Sign In
         </Link>
@@ -36,14 +42,36 @@ const Welcome: React.FC = () => {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
-          <Link 
+          <Link
             to="/login"
-            className="px-8 py-4 bg-methodist-blue text-methodist-white font-bold rounded-xl hover:bg-opacity-90 transition-all shadow-lg text-center"
+            className="px-8 py-4 font-bold rounded-xl transition-all shadow-lg text-center"
+            style={{
+              backgroundColor: '#0B3C5D',
+              color: '#FFFFFF'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#072B43'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0B3C5D'}
           >
             Get Started
           </Link>
           <button
-            className="px-8 py-4 border-2 border-methodist-blue text-methodist-blue font-bold rounded-xl hover:bg-methodist-blue hover:text-methodist-white transition-colors text-center"
+            onClick={() => {
+              const featuresSection = document.querySelector('main');
+              featuresSection?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-8 py-4 border-2 font-bold rounded-xl transition-colors text-center"
+            style={{
+              borderColor: '#0B3C5D',
+              color: '#0B3C5D'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0B3C5D';
+              e.currentTarget.style.color = '#FFFFFF';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#0B3C5D';
+            }}
           >
             View Demo
           </button>

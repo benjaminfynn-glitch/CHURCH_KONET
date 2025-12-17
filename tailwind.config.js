@@ -9,11 +9,15 @@ module.exports = {
     extend: {
       colors: {
         methodist: {
-          blue: '#0B3C5D',    // Royal Blue - authority, trust
-          red: '#B11226',     // Red - faith, sacrifice, emphasis
-          gold: '#C9A227',    // Gold - divine glory, excellence
-          white: '#FFFFFF',   // White - purity, clarity
+          blue: '#0B3C5D',
+          red: '#B11226',
+          gold: '#C9A227',
+          white: '#FFFFFF',
         },
+        'methodist-blue': '#0B3C5D',
+        'methodist-red': '#B11226',
+        'methodist-gold': '#C9A227',
+        'methodist-white': '#FFFFFF',
         ink: '#0F172A',          // Primary text - strong
         muted: '#475569',        // Secondary text
         surface: '#F8FAFC',      // Card backgrounds

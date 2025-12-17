@@ -26,8 +26,7 @@ const PostLoginWelcome: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative">
-      <div className="church-background-light absolute inset-0"></div>
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="max-w-3xl w-full">
         {/* Main Welcome Card */}
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700 animate-in fade-in zoom-in duration-500">
