@@ -1,30 +1,30 @@
 @layer base {
   :root {
-    /* Methodist Church Ghana Theme - Enhanced for Readability */
-    --church-blue: 25, 118, 210;     /* Rich Blue #1976D2 */
-    --church-red: 183, 28, 28;       /* Deep Red #B71C1C */
-    --church-gold: 245, 127, 23;     /* Vibrant Gold #F57F17 */
+    /* OFFICIAL Methodist Church Ghana Colors - STRONG & VISIBLE */
+    --methodist-blue: #0B3C5D;    /* Royal Blue - authority, trust */
+    --methodist-red: #B11226;     /* Red - faith, sacrifice, emphasis */
+    --methodist-gold: #C9A227;    /* Gold - divine glory, excellence */
+    --methodist-white: #FFFFFF;   /* White - purity, clarity */
 
-    /* Primary Color - Rich Blue */
-    --color-primary: var(--church-blue);
-    --color-primary-light: 144, 202, 249;
-    --color-primary-dark: 13, 71, 161;
+    /* Text Colors - High Contrast */
+    --text-main: #0F172A;          /* Primary text - strong */
+    --text-muted: #475569;         /* Secondary text */
+    --text-white: #FFFFFF;         /* White text on dark backgrounds */
 
-    /* Secondary Color - Deep Red */
-    --color-secondary: var(--church-red);
-    --color-secondary-light: 229, 115, 115;
-    --color-secondary-dark: 103, 10, 10;
-
-    /* Accent Color - Vibrant Gold */
-    --color-accent: var(--church-gold);
-    --color-accent-light: 255, 183, 77;
-    --color-accent-dark: 191, 95, 0;
-
-    /* Neutral Colors for Text */
-    --color-text-primary: 33, 33, 33;      /* Dark Gray */
-    --color-text-secondary: 117, 117, 117; /* Medium Gray */
-    --color-text-light: 255, 255, 255;     /* White */
+    /* Force Methodist Colors (Override Everything) */
+    --background: #FFFFFF;         /* White background */
+    --foreground: #0F172A;         /* Strong text */
+    --muted: #475569;              /* Muted text */
+    --primary: #0B3C5D;            /* Royal Blue */
+    --secondary: #B11226;          /* Red */
+    --accent: #C9A227;             /* Gold */
   }
+}
+
+/* FORCE WHITE BACKGROUNDS - NO GREY OVERRIDES */
+html, body {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
 }
 
 @layer components {
