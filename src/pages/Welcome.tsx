@@ -5,6 +5,13 @@ import { Link } from 'react-router-dom';
 const Welcome: React.FC = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
+      {/* TEST BLOCK - REMOVE AFTER VERIFYING COLORS */}
+      <div className="fixed top-4 right-4 p-4 space-y-2 bg-white border border-border rounded-lg shadow-lg z-50">
+        <div className="text-xs font-bold text-ink">METHODIST COLORS TEST:</div>
+        <div className="bg-methodist-blue text-methodist-white px-3 py-1 rounded text-xs">Royal Blue</div>
+        <div className="bg-methodist-red text-methodist-white px-3 py-1 rounded text-xs">Red</div>
+        <div className="bg-methodist-gold text-methodist-blue px-3 py-1 rounded text-xs">Gold</div>
+      </div>
       {/* Navbar */}
       <nav className="w-full px-6 py-4 flex justify-between items-center max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
