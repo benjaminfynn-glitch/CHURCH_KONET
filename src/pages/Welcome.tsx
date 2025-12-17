@@ -6,13 +6,6 @@ const Welcome: React.FC = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans relative">
       <div className="church-background-light"></div>
-      {/* TEST BLOCK - REMOVE AFTER VERIFYING COLORS */}
-      <div style={{ background: '#FFFFFF', padding: 16, position: 'fixed', top: 16, right: 16, border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', zIndex: 50 }}>
-        <div style={{ fontSize: 12, fontWeight: 'bold', color: '#0F172A', marginBottom: 8 }}>METHODIST COLORS TEST:</div>
-        <div style={{ background: '#0B3C5D', color: '#FFFFFF', padding: '4px 12px', borderRadius: 4, fontSize: 12, marginBottom: 4 }}>Royal Blue</div>
-        <div style={{ background: '#B11226', color: '#FFFFFF', padding: '4px 12px', borderRadius: 4, fontSize: 12, marginBottom: 4 }}>Red</div>
-        <div style={{ background: '#C9A227', color: '#0B3C5D', padding: '4px 12px', borderRadius: 4, fontSize: 12 }}>Gold</div>
-      </div>
       {/* Navbar */}
       <nav className="w-full px-6 py-4 flex justify-between items-center max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
@@ -45,14 +38,12 @@ const Welcome: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
           <Link 
             to="/login"
-            style={{ backgroundColor: '#0B3C5D', color: '#FFFFFF' }}
-            className="px-8 py-4 font-bold rounded-xl hover:opacity-90 transition-all shadow-lg text-center"
+            className="px-8 py-4 bg-methodist-blue text-methodist-white font-bold rounded-xl hover:bg-opacity-90 transition-all shadow-lg text-center"
           >
             Get Started
           </Link>
           <button
-            style={{ borderColor: '#0B3C5D', color: '#0B3C5D' }}
-            className="px-8 py-4 border-2 font-bold rounded-xl hover:bg-current hover:text-white transition-colors text-center"
+            className="px-8 py-4 border-2 border-methodist-blue text-methodist-blue font-bold rounded-xl hover:bg-methodist-blue hover:text-methodist-white transition-colors text-center"
           >
             View Demo
           </button>
