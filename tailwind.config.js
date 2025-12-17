@@ -13,10 +13,10 @@ module.exports = {
           gold: '#C9A227',    // Gold - divine glory, excellence
           white: '#FFFFFF',   // White - purity, clarity
         },
-        textPrimary: '#0F172A',  // Dark Text
-        textMuted: '#475569',    // Muted Text
-        borderGray: '#E2E8F0',   // Border Gray
-        lightGray: '#F8FAFC',    // Light Gray
+        ink: '#0F172A',          // Primary text - strong
+        muted: '#475569',        // Secondary text
+        surface: '#F8FAFC',      // Card backgrounds
+        border: '#E2E8F0',       // Borders
       },
     },
   },

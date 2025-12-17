@@ -50,10 +50,10 @@ const Login: React.FC = () => {
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-2xl mb-4">
                     ⛪
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                <h2 className="text-2xl font-bold text-methodist-blue">
                     Church Konet Login
                 </h2>
-                <p className="text-slate-500 dark:text-slate-400 mt-2">
+                <p className="text-muted mt-2">
                     Sign in to access your dashboard
                 </p>
                 <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
@@ -65,7 +65,7 @@ const Login: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-medium text-ink mb-2">
                         Email Address
                     </label>
                     <input
@@ -80,7 +80,7 @@ const Login: React.FC = () => {
                 </div>
                 
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    <label className="block text-sm font-medium text-ink mb-2">
                         Password
                     </label>
                     <input
@@ -108,7 +108,7 @@ const Login: React.FC = () => {
             </form>
 
             <div className="mt-6 text-center">
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted">
                     For account assistance, please contact your administrator
                 </p>
             </div>
