@@ -1,8 +1,11 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Welcome: React.FC = () => {
+  const { user } = useAuth();
+  const userFullName = user?.fullName || 'Member';
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       {/* Navbar */}
@@ -37,8 +40,12 @@ const Welcome: React.FC = () => {
           Connect with your congregation <br className="hidden md:block"/> like never before.
         </h1>
         
-        <p className="text-lg md:text-xl text-muted mb-10 max-w-2xl leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-          Church Konet is the all-in-one messaging platform designed for modern ministries. Manage members, automate birthday wishes, and send broadcast SMS with ease.
+        <h2 className="text-xl font-semibold text-blue-900 mb-2 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+          Welcome,
+          <span className="text-red-700"> {userFullName}</span>
+        </h2>
+        <p className="text-sm text-gray-600 mb-10 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+          Bethel Methodist Church, Efutu
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">

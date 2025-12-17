@@ -97,7 +97,26 @@ const Login: React.FC = () => {
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-3.5 px-4 bg-methodist-blue hover:bg-opacity-90 text-methodist-white font-bold rounded-xl transition-all shadow-lg shadow-methodist-blue/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+                    className="
+                        w-full
+                        bg-blue-700
+                        hover:bg-blue-800
+                        text-white
+                        font-semibold
+                        py-3
+                        rounded-xl
+                        shadow-md
+                        transition
+                        duration-200
+                        focus:outline-none
+                        focus:ring-4
+                        focus:ring-blue-300
+                        disabled:opacity-70
+                        disabled:cursor-not-allowed
+                        flex
+                        items-center
+                        justify-center
+                    "
                 >
                     {isSubmitting ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
