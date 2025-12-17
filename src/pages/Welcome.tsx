@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 
 const Welcome: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
+    <div className="min-h-screen bg-white flex flex-col font-sans relative">
+      <div className="church-background-light"></div>
       {/* TEST BLOCK - REMOVE AFTER VERIFYING COLORS */}
       <div style={{ background: '#FFFFFF', padding: 16, position: 'fixed', top: 16, right: 16, border: '1px solid #E2E8F0', borderRadius: 8, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', zIndex: 50 }}>
         <div style={{ fontSize: 12, fontWeight: 'bold', color: '#0F172A', marginBottom: 8 }}>METHODIST COLORS TEST:</div>
