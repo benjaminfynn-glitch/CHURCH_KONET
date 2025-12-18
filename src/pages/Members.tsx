@@ -205,42 +205,56 @@ export default function MembersPage() {
     addToast("Template downloaded successfully", "success");
   };
 
+  const activeMembers = useMemo(() => members.filter(m => m.opt_in).length, [members]);
+
   const visible = useMemo(() => members.slice().sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "")), [members]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Members</h1>
-          <p className="text-sm text-slate-500">Manage congregation contacts</p>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Header Card */}
+      <div className="bg-blue-800 text-white rounded-2xl p-6 shadow-lg mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Church Members</h1>
+            <p className="text-blue-100 mt-1">Manage your congregation contacts and information</p>
+            <p className="text-blue-200 text-sm mt-2">
+              Total Members: {members.length} • Active: {activeMembers}
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            {isAdmin && (
+              <>
+                <PrimaryButton
+                  onClick={downloadTemplate}
+                  variant="success"
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Download Template
+                </PrimaryButton>
+                <label className="inline-flex items-center bg-blue-700 hover:bg-blue-800 text-white font-semibold px-5 py-2.5 rounded-lg cursor-pointer shadow-md transition">
+                  Import Member
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    className="hidden"
+                    onChange={handleImport}
+                  />
+                </label>
+              </>
+            )}
+            <PrimaryButton onClick={openAdd} variant="primary">
+              + Add Member
+            </PrimaryButton>
+          </div>
         </div>
-        <div className="flex gap-2">
-           {isAdmin && (
-             <>
-               <button
-                 onClick={downloadTemplate}
-                 className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-medium shadow"
-               >
-                 Download Template
-               </button>
-               <label className="inline-flex items-center bg-blue-700 hover:bg-blue-800 text-white font-semibold px-5 py-2.5 rounded-lg cursor-pointer shadow">
-                 Import Member
-                 <input
-                   type="file"
-                   accept=".xlsx,.xls"
-                   className="hidden"
-                   onChange={handleImport}
-                 />
-               </label>
-             </>
-           )}
-           <PrimaryButton onClick={openAdd} variant="primary" size="md">
-             + Add Member
-           </PrimaryButton>
-         </div>
       </div>
 
-      <MembersTable members={visible} onEdit={openEdit} onDelete={onDelete} />
+      {/* Members Table Card */}
+      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <MembersTable members={visible} onEdit={openEdit} onDelete={onDelete} />
+      </div>
 
       <MemberFormModal
         open={modalOpen}
