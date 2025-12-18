@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000');
 
 export async function sendSMS(data: {
   text: string;
@@ -69,11 +69,20 @@ export async function scheduleSMS(data: {
 }
 
 export async function getBalance() {
-  const res = await fetch(`${API_BASE}/api/balance`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
-  });
-  return res.json();
+  console.log('Fetching SMS balance from:', `${API_BASE}/api/balance`);
+  try {
+    const res = await fetch(`${API_BASE}/api/balance`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    console.log('Balance API response status:', res.status);
+    const result = await res.json();
+    console.log('Balance API response:', result);
+    return result;
+  } catch (error) {
+    console.error('Error fetching balance:', error);
+    throw error;
+  }
 }
 
 export async function handleDeliveryPush(data: any) {
