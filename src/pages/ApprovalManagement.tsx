@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMembers } from '../context/MembersContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import PrimaryButton from '../components/PrimaryButton';
 import { MemberApprovalRequest } from '../types';
 import { formatProperCase } from '../context/MembersContext';
 
@@ -82,16 +83,34 @@ export default function ApprovalManagementPage() {
   const rejectedRequests = approvalRequests.filter(req => req.status === 'rejected');
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Approval Management</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Manage member approval requests</p>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Header Card */}
+      <div className="bg-blue-800 text-white rounded-2xl p-6 shadow-lg mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Approval Management</h1>
+            <p className="text-blue-100 mt-1">Review and manage member approval requests</p>
+            <p className="text-blue-200 text-sm mt-2">
+              Pending: {pendingRequests.length} • Approved: {approvedRequests.length} • Rejected: {rejectedRequests.length}
+            </p>
+          </div>
+
+          {/* Stats Display */}
+          <div className="text-right">
+            <div className="text-2xl font-bold text-blue-100">
+              {pendingRequests.length}
+            </div>
+            <div className="text-sm text-blue-200">
+              Pending Reviews
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Pending Requests */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+      <div className="bg-white rounded-xl shadow-md mb-6">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
             Pending Requests ({pendingRequests.length})
           </h2>
@@ -116,18 +135,20 @@ export default function ApprovalManagementPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
+                    <PrimaryButton
                       onClick={() => handleApprove(request)}
-                      className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+                      variant="success"
+                      size="sm"
                     >
                       Approve
-                    </button>
-                    <button
+                    </PrimaryButton>
+                    <PrimaryButton
                       onClick={() => setSelectedRequest(request)}
-                      className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+                      variant="danger"
+                      size="sm"
                     >
                       Reject
-                    </button>
+                    </PrimaryButton>
                   </div>
                 </div>
 
@@ -223,9 +244,9 @@ export default function ApprovalManagementPage() {
       )}
 
       {/* Recent Activity */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Recent Activity</h2>
+      <div className="bg-white rounded-xl shadow-md">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-bold text-gray-800">Recent Activity</h2>
         </div>
         
         <div className="divide-y divide-slate-100 dark:divide-slate-700">
