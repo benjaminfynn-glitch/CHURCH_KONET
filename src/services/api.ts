@@ -13,18 +13,13 @@ export const sendBroadcast = async (payload: SMSRequest): Promise<SMSResponse> =
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      let errorMessage = 'Broadcast request failed';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
-      } catch (e) {
-        // Ignore JSON parse error
-      }
+    const result: SMSResponse = await response.json();
+
+    if (!response.ok || !result.success) {
+      const errorMessage = result.error || 'Broadcast request failed';
       throw new Error(errorMessage);
     }
 
-    const result: SMSResponse = await response.json();
     return result;
   } catch (error) {
     console.error("Broadcast failed", error);

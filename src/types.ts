@@ -54,15 +54,19 @@ export interface SMSRequest {
 }
 
 export interface SMSResponse {
-  handshake: {
-    id: number;
-    error: string;
-    label: string;
-  };
-  data: {
-    batch?: string;
-    message?: string;
-  };
+  success: boolean;
+  batch?: string;
+  category?: string;
+  delivery?: boolean;
+  count?: number;
+  deliveryStatuses?: Array<{
+    phone: string;
+    status: string;
+    message_id: string;
+    error?: string;
+  }>;
+  personalized?: boolean;
+  error?: string;
 }
 
 export interface BalanceResponse {
