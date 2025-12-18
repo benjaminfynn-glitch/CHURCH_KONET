@@ -50,19 +50,19 @@ const Layout: React.FC = () => {
   ];
 
   const SidebarContent = ({ isMobile = false }) => (
-    <div className="flex flex-col h-full overflow-hidden bg-gradient-to-b from-white to-primary/5 dark:from-slate-800 dark:to-slate-900">
-       <div className="p-6 border-b border-primary/20 flex items-center h-[73px] whitespace-nowrap overflow-hidden">
-         <div className="text-3xl mr-3 min-w-[24px] text-accent">✞</div>
+    <div className="flex flex-col h-full overflow-hidden bg-white border-r border-gray-200">
+       <div className="p-6 border-b border-gray-200 flex items-center h-[73px] whitespace-nowrap overflow-hidden bg-blue-800">
+         <div className="text-3xl mr-3 min-w-[24px] text-yellow-400">✞</div>
 
          <h1 className={`
-            font-bold text-primary tracking-tight text-xl transition-all duration-300
-            ${!isMobile && sidebarCollapsed
-              ? 'lg:opacity-0 lg:w-0 lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:w-0'
-              : 'lg:opacity-100 lg:w-auto'
-            }
-            md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto
+           font-bold text-white tracking-tight text-xl transition-all duration-300
+           ${!isMobile && sidebarCollapsed
+             ? 'lg:opacity-0 lg:w-0 lg:group-hover/sidebar:opacity-0 lg:group-hover/sidebar:w-0'
+             : 'lg:opacity-100 lg:w-auto'
+           }
+           md:opacity-0 md:w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:w-auto
          `}>
-           <span className="text-accent">CHURCH</span> KONET
+           <span className="text-yellow-400">CHURCH</span> KONET
          </h1>
        </div>
 
@@ -74,8 +74,8 @@ const Layout: React.FC = () => {
               className={({ isActive }) =>
                 `flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap
                  ${isActive
-                   ? 'bg-primary/10 text-primary border-l-4 border-accent shadow-sm'
-                   : 'text-slate-600 dark:text-slate-400 hover:bg-primary/5 hover:text-primary border-l-4 border-transparent'
+                   ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500 shadow-sm'
+                   : 'text-gray-600 hover:bg-gray-50 hover:text-blue-700 border-l-4 border-transparent'
                  }
                 `
               }
@@ -99,10 +99,10 @@ const Layout: React.FC = () => {
        </nav>
 
        {!isMobile && (
-        <div className="hidden lg:flex p-4 border-t border-primary/20 justify-end">
+        <div className="hidden lg:flex p-4 border-t border-gray-200 justify-end">
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            className="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
             aria-label={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {sidebarCollapsed ? <Icons.ChevronRight /> : <Icons.ChevronLeft />}
@@ -111,32 +111,32 @@ const Layout: React.FC = () => {
        )}
        
        <div className={`
-         p-4 border-t border-primary/20 overflow-hidden whitespace-nowrap transition-all duration-300
+         p-4 border-t border-gray-200 overflow-hidden whitespace-nowrap transition-all duration-300
          ${!isMobile && sidebarCollapsed
            ? 'lg:h-0 lg:p-0 lg:group-hover/sidebar:h-0 lg:group-hover/sidebar:p-0 lg:border-none'
            : 'lg:h-auto'
          }
          md:h-0 md:p-0 md:group-hover/sidebar:h-auto md:group-hover/sidebar:p-4
        `}>
-         <div className="bg-primary/5 rounded-lg p-3 border border-primary/20 space-y-3 shadow-sm">
+         <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 space-y-3">
             <div>
-              <p className="text-[10px] font-bold text-primary uppercase truncate">System Status</p>
+              <p className="text-[10px] font-bold text-gray-600 uppercase truncate">System Status</p>
               <div className="flex items-center gap-2 mt-1">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span className="text-xs text-primary font-medium">Online</span>
+                <span className="text-xs text-gray-700 font-medium">Online</span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-primary/20">
+            <div className="pt-3 border-t border-gray-200">
                <div className="flex items-center gap-2 mb-2">
-                 <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-xs font-bold text-white">
+                 <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
                     {user?.fullName?.charAt(0) || 'A'}
                  </div>
-                 <p className="text-xs font-medium text-primary truncate">{user?.fullName || 'User'}</p>
+                 <p className="text-xs font-medium text-gray-700 truncate">{user?.fullName || 'User'}</p>
                </div>
                <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 text-xs text-secondary hover:bg-secondary/10 p-1.5 rounded transition-colors"
+                className="w-full flex items-center gap-2 text-xs text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors"
                >
                  <Icons.Logout />
                  <span>Sign Out</span>
@@ -148,7 +148,7 @@ const Layout: React.FC = () => {
   );
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-white to-primary/5 dark:from-slate-900 dark:to-slate-800 transition-colors duration-200 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 transition-colors duration-200 overflow-hidden">
       
       {isMobileMenuOpen && (
         <div
@@ -159,7 +159,7 @@ const Layout: React.FC = () => {
       )}
 
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-3/4 max-w-xs bg-gradient-to-b from-white to-primary/5 dark:from-slate-800 dark:to-slate-900 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col
+        fixed inset-y-0 left-0 z-50 w-3/4 max-w-xs bg-white shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col border-r border-gray-200
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
          <SidebarContent isMobile={true} />
@@ -179,23 +179,23 @@ const Layout: React.FC = () => {
         <SidebarContent />
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-gradient-to-br from-white to-primary/5 dark:from-slate-900 dark:to-slate-800">
-        <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-primary/20 px-4 py-3 flex justify-between items-center md:hidden sticky top-0 z-20 shadow-sm">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 px-4 py-4 flex justify-between items-center md:hidden sticky top-0 z-20 shadow-sm">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 -ml-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                className="p-2 -ml-2 text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
                 aria-label="Open Menu"
               >
                 <Icons.Menu />
               </button>
-              <h1 className="text-lg font-bold text-primary flex items-center gap-2">
-                <span className="text-accent">✞</span> CHURCH KONET
+              <h1 className="text-lg font-bold text-blue-800 flex items-center gap-2">
+                <span className="text-yellow-600">✞</span> CHURCH KONET
               </h1>
             </div>
         </header>
-        
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 bg-gray-50">
            <Outlet />
         </div>
       </main>
