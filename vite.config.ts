@@ -10,6 +10,10 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react()],
+    server: {
+      host: '0.0.0.0', // Allow access from network
+      port: 5173,
+    },
     build: {
       outDir: 'dist',
     },
