@@ -3,6 +3,7 @@ import { useSettings } from '../context/SettingsContext';
 import { useMembers } from '../context/MembersContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import PrimaryButton from '../components/PrimaryButton';
 import { BirthdayPeriod } from '../types';
 
 const Settings: React.FC = () => {
@@ -36,29 +37,52 @@ const Settings: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
-       <div>
-           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h2>
-           <p className="text-slate-500 dark:text-slate-400">Configure application preferences and manage data.</p>
-       </div>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Header Card */}
+      <div className="bg-blue-800 text-white rounded-2xl p-6 shadow-lg mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Application Settings</h1>
+            <p className="text-blue-100 mt-1">Configure preferences and manage system data</p>
+            <p className="text-blue-200 text-sm mt-2">
+              Admin Access: {isAdmin ? 'Enabled' : 'Limited'}
+            </p>
+          </div>
 
-       <div className="flex flex-col lg:flex-row gap-8">
-           {/* Sidebar Navigation */}
-           <div className="w-full lg:w-64 flex flex-col gap-1">
-               {tabs.map(tab => (
-                   <button
-                     key={tab.id}
-                     onClick={() => setActiveTab(tab.id as any)}
-                     className={`text-left px-4 py-3 rounded-lg font-medium flex items-center gap-3 transition-colors ${activeTab === tab.id ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-                   >
-                       <span>{tab.icon}</span>
-                       {tab.label}
-                   </button>
-               ))}
-           </div>
+          {/* Stats Display */}
+          <div className="text-right">
+            <div className="text-2xl font-bold text-blue-100">
+              {tabs.length}
+            </div>
+            <div className="text-sm text-blue-200">
+              Available Sections
+            </div>
+          </div>
+        </div>
+      </div>
 
-           {/* Main Content Area */}
-           <div className="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 min-h-[500px] transition-colors">
+      <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar Navigation */}
+          <div className="w-full lg:w-64">
+            <div className="bg-white rounded-xl shadow-md p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Settings Menu</h3>
+              <div className="space-y-2">
+                {tabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`w-full text-left px-4 py-3 rounded-lg font-medium flex items-center gap-3 transition-colors ${activeTab === tab.id ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-500' : 'text-gray-600 hover:bg-gray-50'}`}
+                    >
+                        <span className="text-lg">{tab.icon}</span>
+                        {tab.label}
+                    </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1 bg-white rounded-xl shadow-md p-6 min-h-[500px]">
                
                {/* Theme Settings */}
                {activeTab === 'theme' && (
@@ -174,7 +198,7 @@ const Settings: React.FC = () => {
                              placeholder="New Organization Name"
                              className="flex-1 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 dark:text-white"
                            />
-                           <button 
+                           <PrimaryButton
                              onClick={() => {
                                  if(newOrgName) {
                                      addOrganization(newOrgName);
@@ -182,10 +206,10 @@ const Settings: React.FC = () => {
                                      addToast('Organization added', 'success');
                                  }
                              }}
-                             className="bg-primary text-text-light px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark"
+                             size="sm"
                            >
-                               Add
-                           </button>
+                             Add Organization
+                           </PrimaryButton>
                        </div>
 
                        <ul className="space-y-2 max-h-96 overflow-y-auto">
@@ -236,7 +260,7 @@ const Settings: React.FC = () => {
                              className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-700 dark:text-white"
                              rows={2}
                            />
-                           <button 
+                           <PrimaryButton
                              onClick={() => {
                                  if(newTemplate.title && newTemplate.content) {
                                      addTemplate({ id: Date.now().toString(), ...newTemplate });
@@ -244,10 +268,10 @@ const Settings: React.FC = () => {
                                      addToast('Template added', 'success');
                                  }
                              }}
-                             className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
+                             className="w-full"
                            >
-                               Add New Template
-                           </button>
+                             Add New Template
+                           </PrimaryButton>
                        </div>
 
                        <div className="space-y-3">
@@ -309,12 +333,12 @@ const Settings: React.FC = () => {
                            Review and approve member management requests submitted by regular users.
                        </p>
                        <div className="flex gap-4">
-                           <a
-                               href="/approval-management"
-                               className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
-                           >
-                               Go to Approval Management
-                           </a>
+                         <a
+                           href="/approval-management"
+                           className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-md"
+                         >
+                           Go to Approval Management
+                         </a>
                        </div>
                    </div>
                )}
