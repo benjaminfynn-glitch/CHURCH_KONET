@@ -6,6 +6,7 @@ import { MessageType, SMSRequest, SMSDestinationPersonalized, SentMessage } from
 import { useToast } from '../context/ToastContext';
 import { useMembers } from '../context/MembersContext';
 import { calculateSMSCost } from '../services/smsUtils';
+import PrimaryButton from '../components/PrimaryButton';
 
 const Broadcast: React.FC = () => {
   const { addToast } = useToast();
@@ -342,17 +343,35 @@ const Broadcast: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 relative animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">New Broadcast</h2>
-        <p className="text-slate-500 dark:text-slate-400">Compose and send SMS updates to the congregation.</p>
+    <div className="max-w-7xl mx-auto px-4 py-6 relative animate-in fade-in duration-500">
+      {/* Header Card */}
+      <div className="bg-blue-800 text-white rounded-2xl p-6 shadow-lg mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Send Broadcast</h1>
+            <p className="text-blue-100 mt-1">Compose and send SMS messages to your congregation</p>
+            <p className="text-blue-200 text-sm mt-2">
+              Recipients Selected: {selectedMembers.length > 0 ? selectedMembers.length : 'None'}
+            </p>
+          </div>
+
+          {/* Cost Display */}
+          <div className="text-right">
+            <div className="text-2xl font-bold text-blue-100">
+              ₵{estimatedCost.toFixed(2)}
+            </div>
+            <div className="text-sm text-blue-200">
+              Estimated Cost
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         {/* Left Column: Editor (Always Visible) */}
-        <div className="space-y-4">
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col h-full transition-colors">
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-md p-6 flex flex-col h-full">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Message Editor</h3>
             
             <div className="flex-1">
@@ -462,8 +481,8 @@ const Broadcast: React.FC = () => {
         </div>
 
         {/* Right Column: Destinations */}
-        <div className="space-y-4">
-           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[500px] flex flex-col transition-colors">
+        <div className="space-y-6">
+           <div className="bg-white rounded-xl shadow-md p-6 min-h-[500px] flex flex-col">
              <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Destinations</h3>
              
              {/* Tabs */}
@@ -607,14 +626,15 @@ const Broadcast: React.FC = () => {
                )}
              </div>
 
-             <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-700">
-               <button 
+             <div className="pt-6 mt-6 border-t border-gray-200">
+               <PrimaryButton
                  onClick={handlePreview}
                  disabled={selectedMembers.length === 0 || !messageText}
-                 className="w-full bg-primary text-text-light py-3 rounded-xl font-medium hover:bg-primary-dark disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed transition-colors shadow-sm"
+                 className="w-full py-3"
+                 size="lg"
                >
-                 Broadcast
-               </button>
+                 Send Broadcast
+               </PrimaryButton>
              </div>
            </div>
         </div>
