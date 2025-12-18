@@ -1,7 +1,7 @@
 import { SMSRequest, SMSResponse, BalanceResponse, SMSDestinationPersonalized } from '../types';
 
 // API base URL - relative for production, localhost for development
-const API_BASE = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000');
+const API_BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api');
 
 export const sendBroadcast = async (payload: SMSRequest): Promise<SMSResponse> => {
   try {
