@@ -160,6 +160,50 @@ export default function MembersPage() {
     }
   };
 
+  const downloadTemplate = () => {
+    // Create sample data
+    const sampleData = [
+      {
+        "Full Name": "John Doe",
+        "Gender": "Male",
+        "Date of Birth (DD/MM/YYYY)": "15/03/1985",
+        "Organization": "Youth Ministry"
+      },
+      {
+        "Full Name": "Mary Smith",
+        "Gender": "Female",
+        "Date of Birth (DD/MM/YYYY)": "22/07/1990",
+        "Organization": "Choir"
+      },
+      {
+        "Full Name": "Peter Johnson",
+        "Gender": "Male",
+        "Date of Birth (DD/MM/YYYY)": "10/12/1982",
+        "Organization": "Elders Council"
+      }
+    ];
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+
+    // Set column widths
+    const colWidths = [
+      { wch: 20 }, // Full Name
+      { wch: 10 }, // Gender
+      { wch: 25 }, // Date of Birth
+      { wch: 20 }  // Organization
+    ];
+    ws['!cols'] = colWidths;
+
+    // Add to workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+    // Generate and download file
+    XLSX.writeFile(wb, "member-import-template.xlsx");
+    addToast("Template downloaded successfully", "success");
+  };
+
   const visible = useMemo(() => members.slice().sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "")), [members]);
 
   return (
@@ -170,19 +214,27 @@ export default function MembersPage() {
           <p className="text-sm text-slate-500">Manage congregation contacts</p>
         </div>
         <div className="flex gap-2">
-          {isAdmin && (
-            <label className="inline-flex items-center bg-blue-700 hover:bg-blue-800 text-white font-semibold px-5 py-2.5 rounded-lg cursor-pointer shadow">
-              Import Member
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={handleImport}
-              />
-            </label>
-          )}
-          <button onClick={openAdd} className="px-3 py-2 rounded bg-sky-600 text-white">+ Add Member</button>
-        </div>
+           {isAdmin && (
+             <>
+               <button
+                 onClick={downloadTemplate}
+                 className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white font-medium shadow"
+               >
+                 Download Template
+               </button>
+               <label className="inline-flex items-center bg-blue-700 hover:bg-blue-800 text-white font-semibold px-5 py-2.5 rounded-lg cursor-pointer shadow">
+                 Import Member
+                 <input
+                   type="file"
+                   accept=".xlsx,.xls"
+                   className="hidden"
+                   onChange={handleImport}
+                 />
+               </label>
+             </>
+           )}
+           <button onClick={openAdd} className="px-3 py-2 rounded bg-sky-600 text-white">+ Add Member</button>
+         </div>
       </div>
 
       <MembersTable members={visible} onEdit={openEdit} onDelete={onDelete} />
