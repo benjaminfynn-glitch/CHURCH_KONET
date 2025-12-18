@@ -7,16 +7,18 @@ import DeleteReasonModal from "../components/DeleteReasonModal";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
 import { Member } from "../types";
+import * as XLSX from 'xlsx';
 
 export default function MembersPage() {
-  const { members, organizations, addMember, updateMember, deleteMember, importMembersFromCSV, requestMemberDelete } = useMembers();
+  const { members, organizations, addMember, updateMember, deleteMember, importMembersFromCSV, importMembersFromExcel, requestMemberDelete } = useMembers();
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Member> | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [csvText, setCsvText] = useState("");
+  const [previewMembers, setPreviewMembers] = useState<any[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
 
@@ -63,16 +65,98 @@ export default function MembersPage() {
     }
   };
 
-  const handleImport = async () => {
-    if (!csvText.trim()) return;
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     try {
-      const res = await importMembersFromCSV(csvText);
-      addToast(`Imported ${res.added} members, ${res.failed} failed`, "success");
-      setCsvText("");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer);
+
+      if (!workbook.SheetNames.includes("Data")) {
+        addToast("Invalid template. 'Data' sheet missing.", "error");
+        return;
+      }
+
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets["Data"]);
+
+      // Validate required columns
+      if (rows.length === 0) {
+        addToast("Excel file is empty.", "error");
+        return;
+      }
+
+      const firstRow = rows[0] as any;
+      const requiredColumns = ["Full Name", "Gender", "Date of Birth (DD/MM/YYYY)", "Organization"];
+      const missingColumns = requiredColumns.filter(col => !(col in firstRow));
+
+      if (missingColumns.length > 0) {
+        addToast(`Missing columns: ${missingColumns.join(", ")}`, "error");
+        return;
+      }
+
+      // Check for duplicates
+      const seen = new Set<string>();
+      const duplicates: number[] = [];
+
+      rows.forEach((row: any, index: number) => {
+        const key = `${row["Full Name"]?.trim()}-${row["Date of Birth (DD/MM/YYYY)"]?.trim()}`;
+        if (seen.has(key)) {
+          duplicates.push(index + 1); // +1 for 1-based row numbers
+        }
+        seen.add(key);
+      });
+
+      if (duplicates.length > 0) {
+        addToast(`Duplicate members found on rows: ${duplicates.join(", ")}`, "error");
+        return;
+      }
+
+      setPreviewMembers(rows);
+      setShowPreview(true);
       setImportOpen(false);
-    } catch (e) {
-      console.error(e);
-      addToast("Import failed", "error");
+    } catch (error) {
+      console.error("Import error:", error);
+      addToast("Failed to read Excel file.", "error");
+    }
+  };
+
+  const saveImportedMembers = async () => {
+    try {
+      // Parse dates and format members
+      const formattedMembers = previewMembers.map((row: any) => {
+        const dobString = row["Date of Birth (DD/MM/YYYY)"];
+        let birthday = "";
+        if (dobString) {
+          try {
+            const [day, month, year] = dobString.split("/");
+            const date = new Date(Number(year), Number(month) - 1, Number(day));
+            birthday = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+          } catch (e) {
+            console.warn("Invalid date format:", dobString);
+          }
+        }
+
+        return {
+          fullName: row["Full Name"]?.trim() || "",
+          gender: row["Gender"]?.trim() || "",
+          phone: "", // Will be set later or left empty
+          birthday,
+          organization: row["Organization"]?.trim() || "",
+          opt_in: true,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      });
+
+      // Use batch import
+      const res = await importMembersFromExcel(formattedMembers);
+      addToast(`Imported ${res.added} members, ${res.failed} failed`, "success");
+      setShowPreview(false);
+      setPreviewMembers([]);
+    } catch (error) {
+      console.error("Save error:", error);
+      addToast("Failed to save members.", "error");
     }
   };
 
@@ -87,7 +171,15 @@ export default function MembersPage() {
         </div>
         <div className="flex gap-2">
           {isAdmin && (
-            <button onClick={() => setImportOpen(true)} className="px-3 py-2 rounded bg-white border">Import CSV</button>
+            <label className="inline-flex items-center bg-blue-700 hover:bg-blue-800 text-white font-semibold px-5 py-2.5 rounded-lg cursor-pointer shadow">
+              Import Member
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleImport}
+              />
+            </label>
           )}
           <button onClick={openAdd} className="px-3 py-2 rounded bg-sky-600 text-white">+ Add Member</button>
         </div>
@@ -102,15 +194,50 @@ export default function MembersPage() {
         onSaved={() => addToast("Member saved", "success")}
       />
 
-      {importOpen && (
+      {showPreview && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-lg max-w-lg w-full p-4">
-            <h3 className="font-bold">Import CSV</h3>
-            <p className="text-xs text-slate-500 mb-2">Format: Name, Phone, Birthday(YYYY-MM-DD), Organization</p>
-            <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} rows={8} className="w-full rounded border p-2 font-mono" />
-            <div className="flex justify-end gap-2 mt-3">
-              <button onClick={() => setImportOpen(false)} className="px-3 py-2 rounded bg-gray-100">Cancel</button>
-              <button onClick={handleImport} className="px-3 py-2 rounded bg-methodist-blue text-methodist-white hover:bg-opacity-90">Import</button>
+          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-blue-800 mb-4">Preview Imported Members</h2>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border border-gray-300">
+                <thead className="bg-blue-50">
+                  <tr>
+                    <th className="p-3 border border-gray-300 text-left">Full Name</th>
+                    <th className="p-3 border border-gray-300 text-left">Gender</th>
+                    <th className="p-3 border border-gray-300 text-left">Date of Birth</th>
+                    <th className="p-3 border border-gray-300 text-left">Organization</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewMembers.map((member: any, index: number) => (
+                    <tr key={index} className="border border-gray-300">
+                      <td className="p-3 border border-gray-300">{member["Full Name"]}</td>
+                      <td className="p-3 border border-gray-300">{member["Gender"]}</td>
+                      <td className="p-3 border border-gray-300">{member["Date of Birth (DD/MM/YYYY)"]}</td>
+                      <td className="p-3 border border-gray-300">{member["Organization"]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowPreview(false);
+                  setPreviewMembers([]);
+                }}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveImportedMembers}
+                className="px-6 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
+              >
+                Confirm & Save Members
+              </button>
             </div>
           </div>
         </div>

@@ -23,6 +23,7 @@ import {
   setDoc,
   runTransaction,
   getDoc,
+  writeBatch,
 } from "firebase/firestore";
 
 /**
@@ -90,6 +91,7 @@ interface MembersContextType {
   deleteMember: (id: string, reason?: string) => Promise<void>;
   getMember: (id: string) => Member | undefined;
   importMembersFromCSV: (csvData: string) => Promise<{ added: number; failed: number }>;
+  importMembersFromExcel: (members: any[]) => Promise<{ added: number; failed: number }>;
 
   // Approval functions
   requestMemberAdd: (memberData: Partial<Member>) => Promise<string>;
@@ -542,6 +544,47 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return { added, failed };
   };
 
+  // Excel import with batch processing
+  const importMembersFromExcel = async (members: any[]) => {
+    if (!db) return { added: 0, failed: 0 };
+
+    const batch = writeBatch(db);
+    let added = 0;
+    let failed = 0;
+
+    for (const memberData of members) {
+      try {
+        const memberCode = await generateMemberCode();
+        const member = {
+          ...cleanForFirestore(memberData),
+          memberCode,
+          opt_in: true,
+          gender: memberData.gender || "Male",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+
+        const docRef = doc(collection(db, "members"));
+        batch.set(docRef, member);
+        added++;
+      } catch (e) {
+        console.error("Excel member processing error", e);
+        failed++;
+      }
+    }
+
+    try {
+      await batch.commit();
+      await logActivity("Excel Import", `Imported ${added} members, ${failed} failed`);
+    } catch (e) {
+      console.error("Batch commit error", e);
+      failed += added;
+      added = 0;
+    }
+
+    return { added, failed };
+  };
+
   // Organizations & templates & users
   const addOrganization = async (name: string) => {
     const fmt = formatProperCase(name);
@@ -592,6 +635,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         deleteMember,
         getMember,
         importMembersFromCSV,
+        importMembersFromExcel,
         requestMemberAdd,
         requestMemberEdit,
         requestMemberDelete,
