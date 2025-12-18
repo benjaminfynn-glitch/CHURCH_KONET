@@ -1,5 +1,6 @@
 // components/MembersTable.tsx
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Member } from "../types";
 import { formatDateDDMMYYYY } from "../utils/date";
 
@@ -10,6 +11,8 @@ type Props = {
 };
 
 const MembersTable: React.FC<Props> = ({ members, onEdit, onDelete }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -27,7 +30,12 @@ const MembersTable: React.FC<Props> = ({ members, onEdit, onDelete }) => {
             {members.map((m) => (
               <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-700">
                 <td className="px-6 py-4">
-                  <div className="font-medium text-slate-900 dark:text-white">{m.fullName}</div>
+                  <div
+                    className="font-medium text-blue-700 dark:text-blue-400 cursor-pointer hover:underline"
+                    onClick={() => navigate(`/members/${m.id}`)}
+                  >
+                    {m.fullName}
+                  </div>
                   <div className="text-xs text-slate-400">{m.memberCode || ""}</div>
                 </td>
                 <td className="px-6 py-4 font-mono">{m.phone}</td>

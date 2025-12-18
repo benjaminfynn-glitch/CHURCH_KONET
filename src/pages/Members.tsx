@@ -4,6 +4,7 @@ import { useMembers } from "../context/MembersContext";
 import MembersTable from "../components/MembersTable";
 import MemberFormModal from "../components/MemberFormModal";
 import DeleteReasonModal from "../components/DeleteReasonModal";
+import PrimaryButton from "../components/PrimaryButton";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
 import { Member } from "../types";
@@ -233,7 +234,9 @@ export default function MembersPage() {
                </label>
              </>
            )}
-           <button onClick={openAdd} className="px-3 py-2 rounded bg-sky-600 text-white">+ Add Member</button>
+           <PrimaryButton onClick={openAdd} variant="primary" size="md">
+             + Add Member
+           </PrimaryButton>
          </div>
       </div>
 

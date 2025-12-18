@@ -1,7 +1,9 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { VolumeChart, DeliveryChart, PersonalizationChart, BirthdayDistributionChart } from '../components/DashboardStats';
+import { BirthdayDistributionChart } from '../components/DashboardStats';
+import DashboardCard from '../components/DashboardCard';
+import PrimaryButton from '../components/PrimaryButton';
 import { useSettings } from '../context/SettingsContext';
 import { useMembers } from '../context/MembersContext';
 import { useAuth } from '../context/AuthContext';
@@ -160,36 +162,39 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-            <button
+            <PrimaryButton
                 onClick={handleLogout}
-                className="h-full px-4 bg-secondary/10 text-secondary rounded-xl border border-secondary/20 hover:bg-secondary/20 transition-colors flex flex-col justify-center items-center gap-1 group shadow-md"
+                variant="secondary"
+                size="sm"
+                className="flex flex-col gap-1"
                 title="Log Out"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span className="text-[10px] font-bold uppercase hidden md:block group-hover:underline text-secondary">Logout</span>
-            </button>
+                <span className="text-[10px] font-bold uppercase hidden md:block">Logout</span>
+            </PrimaryButton>
         </div>
       </div>
 
       {/* Top Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[
-          { label: 'Total Members', value: totalMembers, icon: '👥', color: 'text-primary', bg: 'bg-primary/10' },
-          { label: 'Active Members', value: activeMembers, icon: '✨', color: 'text-green-600', bg: 'bg-green-50' },
-          { label: birthdayData.label, value: birthdayData.count, icon: '🎂', color: 'text-accent', bg: 'bg-accent/10' },
-        ].map((stat, idx) => (
-          <div key={idx} className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 rounded-xl border border-primary/20 shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:-translate-y-1">
-             <div className="flex justify-between items-start">
-               <div>
-                 <p className="text-sm font-bold text-primary/70 mb-1">{stat.label}</p>
-                 <h3 className="text-3xl font-bold text-primary group-hover:scale-105 transition-transform origin-left">{stat.value}</h3>
-               </div>
-               <div className={`p-3 rounded-lg ${stat.bg} ${stat.color} text-xl shadow-md`}>
-                 {stat.icon}
-               </div>
-             </div>
-          </div>
-        ))}
+        <DashboardCard
+          title="Total Members"
+          value={totalMembers}
+          icon="👥"
+          color="blue"
+        />
+        <DashboardCard
+          title="SMS Sent This Month"
+          value={messagesSentMonth}
+          icon="💬"
+          color="green"
+        />
+        <DashboardCard
+          title={birthdayData.label}
+          value={birthdayData.count}
+          icon="🎂"
+          color="purple"
+        />
       </div>
 
       {/* Main Content Grid */}
@@ -197,53 +202,9 @@ const Dashboard: React.FC = () => {
         
         {/* Left Column: Analytics (2/3 width) */}
         <div className="xl:col-span-2 space-y-8">
-           {/* Charts Grid */}
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
-                 <VolumeChart />
-              </div>
-              
-              <div className="md:col-span-2 cursor-pointer">
-                 <BirthdayDistributionChart members={members} onBarClick={handleChartClick} />
-              </div>
-
-              <DeliveryChart />
-              <PersonalizationChart />
-           </div>
-
-           {/* Activity Log */}
-           <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-primary/20 shadow-lg overflow-hidden transition-colors">
-               <div className="px-6 py-4 border-b border-primary/20 flex justify-between items-center bg-primary/5">
-                   <h3 className="font-bold text-primary flex items-center gap-2">
-                     <span>📋</span> Recent Activity
-                   </h3>
-                   <button onClick={() => navigate('/settings')} className="text-xs text-primary hover:underline font-medium">View All</button>
-               </div>
-               <div className="overflow-x-auto">
-                 <table className="w-full text-sm text-left">
-                     <thead className="bg-primary/5 text-primary/70 font-medium">
-                         <tr>
-                             <th className="px-6 py-3">Timestamp</th>
-                             <th className="px-6 py-3">Action</th>
-                             <th className="px-6 py-3">User</th>
-                         </tr>
-                     </thead>
-                     <tbody className="divide-y divide-primary/10">
-                         {recentLogs.map(log => (
-                           <tr key={log.id} className="hover:bg-primary/5 transition-colors">
-                               <td className="px-6 py-3 text-primary/70 whitespace-nowrap">
-                                 {new Date(log.timestamp).toLocaleDateString('en-GB')} <span className="text-xs">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                               </td>
-                               <td className="px-6 py-3 font-medium text-primary">{log.action}</td>
-                               <td className="px-6 py-3 text-primary/70">{log.user}</td>
-                           </tr>
-                         ))}
-                         {recentLogs.length === 0 && (
-                            <tr><td colSpan={3} className="px-6 py-4 text-center text-primary/50 font-medium">No activity recorded yet.</td></tr>
-                         )}
-                     </tbody>
-                 </table>
-               </div>
+           {/* Birthday Chart */}
+           <div className="cursor-pointer">
+              <BirthdayDistributionChart members={members} onBarClick={handleChartClick} />
            </div>
         </div>
 
