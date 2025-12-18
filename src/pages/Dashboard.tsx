@@ -5,9 +5,8 @@ import { VolumeChart, DeliveryChart, PersonalizationChart, BirthdayDistributionC
 import { useSettings } from '../context/SettingsContext';
 import { useMembers } from '../context/MembersContext';
 import { useAuth } from '../context/AuthContext';
-import { getBalance } from '../services/api';
 import { formatISOToDDMMYYYYWithHyphens } from '../utils/date';
-import { SentMessage, Member, BalanceResponse } from '../types';
+import { SentMessage, Member } from '../types';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -19,27 +18,7 @@ const Dashboard: React.FC = () => {
   const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
   const [duplicateDetails, setDuplicateDetails] = useState<{ member: Member, lastMsg: SentMessage } | null>(null);
 
-  // State for SMS Balance
-  const [smsBalance, setSmsBalance] = useState<BalanceResponse | null>(null);
-  const [loadingBalance, setLoadingBalance] = useState(true);
-
-  // Fetch SMS balance on component mount
-  useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        const balance = await getBalance();
-        setSmsBalance(balance);
-      } catch (error) {
-        console.error('Failed to fetch SMS balance:', error);
-        // Set a default balance to avoid breaking the UI
-        setSmsBalance({ balance: 0, currency: 'GHS' });
-      } finally {
-        setLoadingBalance(false);
-      }
-    };
-
-    fetchBalance();
-  }, []);
+  // SMS Balance removed - not needed for core functionality
 
   // 1. Calculate Stats
   const totalMembers = members.length;
@@ -181,17 +160,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-            {/* SMS Balance Display */}
-            <div className="h-full px-4 bg-primary/10 text-primary rounded-xl border border-primary/20 flex flex-col justify-center items-center gap-1 shadow-md">
-                <div className="flex items-center gap-1">
-                    <span className="text-lg">💰</span>
-                    <span className="font-bold text-lg">
-                        {loadingBalance ? '...' : `${smsBalance?.balance || 0}`}
-                    </span>
-                </div>
-                <span className="text-[9px] font-bold uppercase text-primary">SMS Balance</span>
-            </div>
-
             <button
                 onClick={handleLogout}
                 className="h-full px-4 bg-secondary/10 text-secondary rounded-xl border border-secondary/20 hover:bg-secondary/20 transition-colors flex flex-col justify-center items-center gap-1 group shadow-md"
@@ -204,18 +172,11 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Top Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           { label: 'Total Members', value: totalMembers, icon: '👥', color: 'text-primary', bg: 'bg-primary/10' },
           { label: 'Active Members', value: activeMembers, icon: '✨', color: 'text-green-600', bg: 'bg-green-50' },
           { label: birthdayData.label, value: birthdayData.count, icon: '🎂', color: 'text-accent', bg: 'bg-accent/10' },
-          {
-            label: 'SMS Balance',
-            value: loadingBalance ? '...' : `${smsBalance?.balance || 0} ${smsBalance?.currency || 'SMS'}`,
-            icon: '💰',
-            color: smsBalance && smsBalance.balance > 50 ? 'text-green-600' : 'text-secondary',
-            bg: smsBalance && smsBalance.balance > 50 ? 'bg-green-50' : 'bg-secondary/10'
-          },
         ].map((stat, idx) => (
           <div key={idx} className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-6 rounded-xl border border-primary/20 shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:-translate-y-1">
              <div className="flex justify-between items-start">
