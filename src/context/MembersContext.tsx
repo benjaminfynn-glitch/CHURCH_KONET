@@ -159,7 +159,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
             gender: data.gender || "",
             phone: data.phone || "",
             birthday: data.birthday || "",
-            organization: data.organization || "",
+            organizations: Array.isArray(data.organizations) ? data.organizations : (data.organization ? [data.organization] : []),
             notes: data.notes || "",
             opt_in: typeof data.opt_in === 'boolean' ? data.opt_in : data.opt_in === 'true' || data.opt_in === true,
             isActive: typeof data.isActive === 'boolean' ? data.isActive : data.isActive === 'true' || data.isActive === true,
@@ -253,7 +253,9 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         gender: memberPartial.gender || null,
         phone: memberPartial.phone || null,
         birthday: memberPartial.birthday || null,
-        organization: formatProperCase(memberPartial.organization || ""),
+        organizations: Array.isArray(memberPartial.organizations)
+          ? memberPartial.organizations.map(org => formatProperCase(org))
+          : (memberPartial.organization ? [formatProperCase(memberPartial.organization)] : []),
         notes: memberPartial.notes || null,
         opt_in: typeof memberPartial.opt_in === "boolean" ? memberPartial.opt_in : true,
         createdAt: Date.now(),
@@ -317,7 +319,11 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (updates.gender !== undefined) cleaned.gender = updates.gender;
         if (updates.phone !== undefined) cleaned.phone = updates.phone;
         if (updates.birthday !== undefined) cleaned.birthday = updates.birthday;
-        if (updates.organization !== undefined) cleaned.organization = formatProperCase(updates.organization);
+        if (updates.organizations !== undefined) {
+          cleaned.organizations = Array.isArray(updates.organizations)
+            ? updates.organizations.map(org => formatProperCase(org))
+            : [];
+        }
         if (updates.notes !== undefined) cleaned.notes = updates.notes;
         if (typeof updates.opt_in !== "undefined") cleaned.opt_in = updates.opt_in;
 

@@ -167,7 +167,7 @@ export default function ApprovalManagementPage() {
                       <div><span className="font-medium">Phone:</span> {(request.requestedData as Partial<Member>).phone || ''}</div>
                       <div><span className="font-medium">Gender:</span> {(request.requestedData as Partial<Member>).gender || ''}</div>
                       <div><span className="font-medium">Birthday:</span> {(request.requestedData as Partial<Member>).birthday || ''}</div>
-                      <div className="col-span-2"><span className="font-medium">Organization:</span> {formatProperCase((request.requestedData as Partial<Member>).organization || '')}</div>
+                      <div className="col-span-2"><span className="font-medium">Organizations:</span> {((request.requestedData as Partial<Member>).organizations || []).map(org => formatProperCase(org)).join(', ') || 'None'}</div>
                     </div>
                   </div>
                 )}

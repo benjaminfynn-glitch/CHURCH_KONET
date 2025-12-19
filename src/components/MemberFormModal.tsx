@@ -20,7 +20,7 @@ const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSav
     phone: "",
     birthday: "",
     gender: "",
-    organization: "",
+    organizations: [],
     notes: "",
     opt_in: true,
   });
@@ -34,7 +34,9 @@ const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSav
         phone: initial.phone ?? "",
         birthday: initial.birthday ?? "",
         gender: initial.gender ?? "",
-        organization: initial.organization ?? "",
+        organizations: Array.isArray(initial.organizations)
+          ? initial.organizations
+          : ((initial as any).organization ? [(initial as any).organization] : []),
         notes: initial.notes ?? "",
         opt_in: typeof initial.opt_in === "boolean" ? initial.opt_in : true,
       });
@@ -44,7 +46,7 @@ const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSav
         phone: "",
         birthday: "",
         gender: "",
-        organization: "",
+        organizations: [],
         notes: "",
         opt_in: true,
       });
@@ -136,19 +138,35 @@ const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSav
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Organization</label>
-            <select
-              value={form.organization || ""}
-              onChange={(e) => setForm({ ...form, organization: e.target.value })}
-              className="w-full px-3 py-2 border rounded"
-            >
-              <option value="">-- none --</option>
-              {organizations.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
+            <label className="block text-sm font-medium mb-2">Organizations</label>
+            <div className="space-y-2 max-h-40 overflow-y-auto border rounded p-3 bg-gray-50">
+              {organizations.map((org) => (
+                <label key={org} className="flex items-center space-x-2 cursor-pointer hover:bg-white p-1 rounded">
+                  <input
+                    type="checkbox"
+                    checked={(form.organizations || []).includes(org)}
+                    onChange={(e) => {
+                      const currentOrgs = form.organizations || [];
+                      if (e.target.checked) {
+                        setForm({ ...form, organizations: [...currentOrgs, org] });
+                      } else {
+                        setForm({ ...form, organizations: currentOrgs.filter(o => o !== org) });
+                      }
+                    }}
+                    className="rounded border-gray-300 text-methodist-blue focus:ring-methodist-blue"
+                  />
+                  <span className="text-sm">{org}</span>
+                </label>
               ))}
-            </select>
+              {organizations.length === 0 && (
+                <p className="text-sm text-gray-500 italic">No organizations available</p>
+              )}
+            </div>
+            {(form.organizations || []).length > 0 && (
+              <p className="text-xs text-gray-600 mt-1">
+                Selected: {(form.organizations || []).join(', ')}
+              </p>
+            )}
           </div>
 
           <div>

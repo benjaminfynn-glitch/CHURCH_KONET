@@ -40,7 +40,7 @@ const MembersTable: React.FC<Props> = ({ members, onEdit, onDelete }) => {
                 </td>
                 <td className="px-6 py-4 font-mono">{m.phone}</td>
                 <td className="px-6 py-4">{formatDateDDMMYYYY(m.birthday)}</td>
-                <td className="px-6 py-4">{m.organization || "-"}</td>
+                <td className="px-6 py-4">{(m.organizations || []).join(', ') || "-"}</td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
                     <button onClick={() => onEdit(m)} title="Edit" className="text-slate-500 hover:text-indigo-600">

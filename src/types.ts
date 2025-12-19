@@ -6,7 +6,7 @@ export interface Member {
   gender?: string;
   phone?: string;
   birthday?: string; // YYYY-MM-DD
-  organization?: string;
+  organizations?: string[];
   notes?: string;
   opt_in?: boolean;
   createdAt?: number | null;

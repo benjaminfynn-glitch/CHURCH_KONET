@@ -6,14 +6,7 @@ const PostLoginWelcome: React.FC = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Redirect to login if user data is not available and not loading
-    if (!isLoading && !user) {
-      navigate('/login');
-    }
-  }, [user, isLoading, navigate]);
-
-  // Fallback to 'User' if name is not available
+  // Fallback to 'User' if name is not available (shouldn't happen with proper data)
   const userName = user?.fullName || 'User';
 
   const handleContinueToDashboard = () => {
@@ -21,24 +14,37 @@ const PostLoginWelcome: React.FC = () => {
   };
 
   // Show loading state while fetching user data
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-methodist-blue to-methodist-red mb-6">
-            <div className="w-8 h-8 border-4 border-methodist-white border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-br from-methodist-blue/5 via-white to-methodist-red/5 flex items-center justify-center p-4">
+        <div className="max-w-4xl w-full">
+          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-2 border-methodist-blue/10 p-12 text-center">
+            <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-methodist-white via-methodist-gold/20 to-methodist-white shadow-2xl border-4 border-methodist-white/50 backdrop-blur-sm mb-8">
+              <div className="text-center">
+                <div className="text-6xl mb-1">⛪</div>
+                <div className="text-xs font-bold text-methodist-blue tracking-wider">CHURCH</div>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-methodist-blue mb-4">
+                Welcome to <span className="text-methodist-gold">Church Konet</span>
+              </h1>
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-methodist-blue to-methodist-red mb-6">
+                <div className="w-8 h-8 border-4 border-methodist-white border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            </div>
+
+            <p className="text-xl text-methodist-blue/80 font-medium max-w-2xl mx-auto leading-relaxed">
+              Preparing your personalized experience...
+            </p>
           </div>
-          <h2 className="text-xl font-semibold text-methodist-blue mb-2">Welcome to Church Konet</h2>
-          <p className="text-methodist-blue/70">Preparing your personalized experience...</p>
         </div>
       </div>
     );
   }
 
-  // Don't render the component until the user check is complete
-  if (!user) {
-    return null;
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-methodist-blue/5 via-white to-methodist-red/5 flex items-center justify-center p-4">

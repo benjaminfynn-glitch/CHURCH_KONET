@@ -6,7 +6,7 @@ import {
   User as FirebaseUser,
   AuthError
 } from 'firebase/auth';
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, getFirestore } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 interface User {
@@ -59,27 +59,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let userProfileUnsubscribe: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        try {
-          const { role, displayName } = await fetchUserData(currentUser.uid);
-          setUser({
-            uid: currentUser.uid,
-            email: currentUser.email || '',
-            fullName: displayName,
-            role
-          });
-        } catch (error) {
-          console.error('Error setting user data:', error);
-          setUser(null);
+        // Clean up previous subscription
+        if (userProfileUnsubscribe) {
+          userProfileUnsubscribe();
         }
+
+        // Set up real-time subscription to user profile
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        userProfileUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+          try {
+            let role: 'admin' | 'user' = 'user';
+            let displayName = 'User';
+
+            if (docSnap.exists()) {
+              const userData = docSnap.data();
+              role = userData.role || 'user';
+              displayName = userData.fullName || 'User';
+            } else {
+              console.warn(`No user document found for UID: ${currentUser.uid}. Using default values.`);
+            }
+
+            setUser({
+              uid: currentUser.uid,
+              email: currentUser.email || '',
+              fullName: displayName,
+              role
+            });
+            setIsLoading(false);
+          } catch (error) {
+            console.error('Error in user profile snapshot:', error);
+            setUser(null);
+            setIsLoading(false);
+          }
+        }, (error) => {
+          console.error('User profile subscription error:', error);
+          setUser(null);
+          setIsLoading(false);
+        });
       } else {
+        // Clean up subscription when user logs out
+        if (userProfileUnsubscribe) {
+          userProfileUnsubscribe();
+          userProfileUnsubscribe = null;
+        }
         setUser(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (userProfileUnsubscribe) {
+        userProfileUnsubscribe();
+      }
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
