@@ -20,9 +20,11 @@ import {
   onSnapshot,
   query,
   orderBy,
+  limit,
   setDoc,
   runTransaction,
   getDoc,
+  getDocs,
   writeBatch,
 } from "firebase/firestore";
 
@@ -32,7 +34,7 @@ import {
  * Responsibilities:
  *  - real-time listeners for collections used by the UI
  *  - add/update/delete member operations (clean undefineds)
- *  - generate deterministic member codes using a transaction (metadata/memberCounter)
+ *  - generate dynamic member codes based on existing max code
  *  - CSV import
  *
  * Notes:
@@ -55,26 +57,27 @@ export const formatProperCase = (s?: string) => {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
-// Generate unique member code using a transaction on metadata/memberCounter
+// Generate unique member code dynamically based on existing members
 const generateMemberCode = async (): Promise<string> => {
-  const counterRef = doc(db, "metadata", "memberCounter");
+  const membersRef = collection(db, "members");
+  const q = query(membersRef, orderBy("memberCode", "desc"), limit(1));
+  const snap = await getDocs(q);
 
-  const code = await runTransaction(db, async (tx) => {
-    const snap = await tx.get(counterRef);
-    let nextNumber = 1;
-    if (!snap.exists()) {
-      tx.set(counterRef, { lastNumber: 1 });
-      nextNumber = 1;
-    } else {
-      const d = snap.data() as { lastNumber?: number } | undefined;
-      const last = (d && d.lastNumber) || 0;
-      nextNumber = last + 1;
-      tx.update(counterRef, { lastNumber: nextNumber });
+  let maxNumber = 0;
+  if (!snap.empty) {
+    const data = snap.docs[0].data() as any;
+    const code = data.memberCode;
+    if (code && typeof code === 'string' && code.startsWith("ANC-BMCE-")) {
+      const numStr = code.substring(9);
+      const num = parseInt(numStr, 10);
+      if (!isNaN(num)) {
+        maxNumber = num;
+      }
     }
-    return `ANC-BMCE-${String(nextNumber).padStart(4, "0")}`;
-  });
+  }
 
-  return code;
+  const nextNumber = maxNumber + 1;
+  return `ANC-BMCE-${String(nextNumber).padStart(4, "0")}`;
 };
 
 interface MembersContextType {
