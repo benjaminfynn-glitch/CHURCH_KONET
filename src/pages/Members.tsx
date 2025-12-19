@@ -23,6 +23,14 @@ export default function MembersPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
 
+  // Filters and search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [genderFilter, setGenderFilter] = useState('');
+  const [organizationFilter, setOrganizationFilter] = useState('');
+  const [dobDayFilter, setDobDayFilter] = useState('');
+  const [dobMonthFilter, setDobMonthFilter] = useState('');
+  const [dobYearFilter, setDobYearFilter] = useState('');
+
   const openAdd = () => {
     setEditing(null);
     setModalOpen(true);
@@ -207,7 +215,42 @@ export default function MembersPage() {
 
   const activeMembers = useMemo(() => members.filter(m => m.opt_in).length, [members]);
 
-  const visible = useMemo(() => members.slice().sort((a, b) => (a.fullName || "").localeCompare(b.fullName || "")), [members]);
+  const visible = useMemo(() => {
+    let filtered = members.slice();
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(m =>
+        (m.fullName || "").toLowerCase().includes(query) ||
+        (m.phone || "").includes(query)
+      );
+    }
+
+    // Gender filter
+    if (genderFilter) {
+      filtered = filtered.filter(m => m.gender === genderFilter);
+    }
+
+    // Organization filter
+    if (organizationFilter) {
+      filtered = filtered.filter(m => m.organization === organizationFilter);
+    }
+
+    // DOB filters
+    if (dobDayFilter || dobMonthFilter || dobYearFilter) {
+      filtered = filtered.filter(m => {
+        if (!m.birthday) return false;
+        const date = new Date(m.birthday);
+        if (dobDayFilter && date.getDay() !== parseInt(dobDayFilter)) return false;
+        if (dobMonthFilter && (date.getMonth() + 1) !== parseInt(dobMonthFilter)) return false;
+        if (dobYearFilter && date.getFullYear() !== parseInt(dobYearFilter)) return false;
+        return true;
+      });
+    }
+
+    return filtered.sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
+  }, [members, searchQuery, genderFilter, organizationFilter, dobDayFilter, dobMonthFilter, dobYearFilter]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -247,6 +290,104 @@ export default function MembersPage() {
             <PrimaryButton onClick={openAdd} variant="primary">
               + Add Member
             </PrimaryButton>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <input
+              type="text"
+              placeholder="Search by name or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Gender Filter */}
+          <div className="min-w-[120px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+
+          {/* Organization Filter */}
+          <div className="min-w-[150px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Organization</label>
+            <select
+              value={organizationFilter}
+              onChange={(e) => setOrganizationFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All</option>
+              {organizations.map(org => (
+                <option key={org} value={org}>{org}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* DOB Filters */}
+        <div className="flex flex-col lg:flex-row gap-4 mt-4">
+          <div className="min-w-[120px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Birthday Day</label>
+            <select
+              value={dobDayFilter}
+              onChange={(e) => setDobDayFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All</option>
+              <option value="0">Sunday</option>
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+            </select>
+          </div>
+
+          <div className="min-w-[120px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Birthday Month</label>
+            <select
+              value={dobMonthFilter}
+              onChange={(e) => setDobMonthFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All</option>
+              {Array.from({length: 12}, (_, i) => (
+                <option key={i+1} value={i+1}>
+                  {new Date(0, i).toLocaleString('en', {month: 'long'})}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="min-w-[120px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Birthday Year</label>
+            <select
+              value={dobYearFilter}
+              onChange={(e) => setDobYearFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All</option>
+              {Array.from({length: 100}, (_, i) => {
+                const year = new Date().getFullYear() - i;
+                return <option key={year} value={year}>{year}</option>;
+              })}
+            </select>
           </div>
         </div>
       </div>

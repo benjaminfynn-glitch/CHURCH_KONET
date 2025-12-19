@@ -3,7 +3,7 @@ import { useMembers } from '../context/MembersContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import PrimaryButton from '../components/PrimaryButton';
-import { MemberApprovalRequest } from '../types';
+import { MemberApprovalRequest, Member, MessageTemplate } from '../types';
 import { formatProperCase } from '../context/MembersContext';
 
 export default function ApprovalManagementPage() {
@@ -56,11 +56,18 @@ export default function ApprovalManagementPage() {
     const styles = {
       add: 'bg-green-100 text-green-800',
       edit: 'bg-blue-100 text-blue-800',
-      delete: 'bg-red-100 text-red-800'
+      delete: 'bg-red-100 text-red-800',
+      delete_template: 'bg-red-100 text-red-800'
+    };
+    const labels = {
+      add: 'ADD',
+      edit: 'EDIT',
+      delete: 'DELETE',
+      delete_template: 'DELETE TEMPLATE'
     };
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[action as keyof typeof styles]}`}>
-        {action.toUpperCase()}
+        {labels[action as keyof typeof labels] || action.toUpperCase()}
       </span>
     );
   };
@@ -156,11 +163,11 @@ export default function ApprovalManagementPage() {
                   <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
                     <h4 className="font-medium text-slate-900 dark:text-white mb-2">New Member Details</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div><span className="font-medium">Name:</span> {formatProperCase(request.requestedData.fullName || '')}</div>
-                      <div><span className="font-medium">Phone:</span> {request.requestedData.phone || ''}</div>
-                      <div><span className="font-medium">Gender:</span> {request.requestedData.gender || ''}</div>
-                      <div><span className="font-medium">Birthday:</span> {request.requestedData.birthday || ''}</div>
-                      <div className="col-span-2"><span className="font-medium">Organization:</span> {formatProperCase(request.requestedData.organization || '')}</div>
+                      <div><span className="font-medium">Name:</span> {formatProperCase((request.requestedData as Partial<Member>).fullName || '')}</div>
+                      <div><span className="font-medium">Phone:</span> {(request.requestedData as Partial<Member>).phone || ''}</div>
+                      <div><span className="font-medium">Gender:</span> {(request.requestedData as Partial<Member>).gender || ''}</div>
+                      <div><span className="font-medium">Birthday:</span> {(request.requestedData as Partial<Member>).birthday || ''}</div>
+                      <div className="col-span-2"><span className="font-medium">Organization:</span> {formatProperCase((request.requestedData as Partial<Member>).organization || '')}</div>
                     </div>
                   </div>
                 )}
@@ -169,20 +176,20 @@ export default function ApprovalManagementPage() {
                   <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
                     <h4 className="font-medium text-slate-900 dark:text-white mb-2">Member Updates</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      {request.requestedData.fullName && (
-                        <div><span className="font-medium">Name:</span> {formatProperCase(request.requestedData.fullName)}</div>
+                      {(request.requestedData as Partial<Member>).fullName && (
+                        <div><span className="font-medium">Name:</span> {formatProperCase((request.requestedData as Partial<Member>).fullName)}</div>
                       )}
-                      {request.requestedData.phone && (
-                        <div><span className="font-medium">Phone:</span> {request.requestedData.phone}</div>
+                      {(request.requestedData as Partial<Member>).phone && (
+                        <div><span className="font-medium">Phone:</span> {(request.requestedData as Partial<Member>).phone}</div>
                       )}
-                      {request.requestedData.gender && (
-                        <div><span className="font-medium">Gender:</span> {request.requestedData.gender}</div>
+                      {(request.requestedData as Partial<Member>).gender && (
+                        <div><span className="font-medium">Gender:</span> {(request.requestedData as Partial<Member>).gender}</div>
                       )}
-                      {request.requestedData.birthday && (
-                        <div><span className="font-medium">Birthday:</span> {request.requestedData.birthday}</div>
+                      {(request.requestedData as Partial<Member>).birthday && (
+                        <div><span className="font-medium">Birthday:</span> {(request.requestedData as Partial<Member>).birthday}</div>
                       )}
-                      {request.requestedData.organization && (
-                        <div className="col-span-2"><span className="font-medium">Organization:</span> {formatProperCase(request.requestedData.organization)}</div>
+                      {(request.requestedData as Partial<Member>).organization && (
+                        <div className="col-span-2"><span className="font-medium">Organization:</span> {formatProperCase((request.requestedData as Partial<Member>).organization)}</div>
                       )}
                     </div>
                   </div>
@@ -192,10 +199,20 @@ export default function ApprovalManagementPage() {
                   <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
                     <h4 className="font-medium text-slate-900 dark:text-white mb-2">Member Removal</h4>
                     <div className="text-sm">
-                      <div><span className="font-medium">Member:</span> {formatProperCase(request.requestedData.fullName || '')}</div>
+                      <div><span className="font-medium">Member:</span> {formatProperCase((request.requestedData as Partial<Member>).fullName || '')}</div>
                       {request.deleteReason && (
                         <div className="mt-2"><span className="font-medium">Reason:</span> {request.deleteReason}</div>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {request.action === 'delete_template' && (
+                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
+                    <h4 className="font-medium text-slate-900 dark:text-white mb-2">Template Deletion</h4>
+                    <div className="text-sm">
+                      <div><span className="font-medium">Template:</span> {(request.requestedData as MessageTemplate).title}</div>
+                      <div className="mt-2"><span className="font-medium">Content:</span> {(request.requestedData as MessageTemplate).content}</div>
                     </div>
                   </div>
                 )}

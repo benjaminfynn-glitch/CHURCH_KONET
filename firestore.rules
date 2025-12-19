@@ -7,7 +7,36 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Allow authenticated users to read/write all documents (temporary for development)
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users collection - users can read their own, admins can read/write all
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Organizations and Activity Logs - admin only
+    match /organizations/{orgId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /activity_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Member approval requests - authenticated users can create, admins can read/write
+    match /member_approval_requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // Allow authenticated users to read/write other collections
     match /{document=**} {
       allow read, write: if isAuthenticated();
     }

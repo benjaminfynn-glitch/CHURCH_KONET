@@ -31,9 +31,9 @@ const Settings: React.FC = () => {
     ...(isAdmin ? [{ id: 'users', label: 'User Management', icon: '👥' }] : []),
     ...(isAdmin ? [{ id: 'approvals', label: 'Approval Management', icon: '✅' }] : []),
     { id: 'birthdays', label: 'Birthday Settings', icon: '🎂' },
-    { id: 'orgs', label: 'Organizations', icon: '🏢' },
+    ...(isAdmin ? [{ id: 'orgs', label: 'Organizations', icon: '🏢' }] : []),
     { id: 'templates', label: 'Message Templates', icon: '📝' },
-    { id: 'logs', label: 'Activity Log', icon: '📜' },
+    ...(isAdmin ? [{ id: 'logs', label: 'Activity Log', icon: '📜' }] : []),
   ];
 
   return (

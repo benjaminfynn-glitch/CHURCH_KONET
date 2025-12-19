@@ -12,7 +12,8 @@ export interface Member {
   createdAt?: number | null;
   updatedAt?: number | null;
   // Approval fields
-  status?: 'pending' | 'approved' | 'rejected';
+  status?: 'inactive' | 'pending' | 'approved' | 'rejected';
+  statusMessage?: string;
   approvedBy?: string;
   approvedAt?: number | null;
   rejectionReason?: string;
@@ -21,8 +22,8 @@ export interface Member {
 export interface MemberApprovalRequest {
   id?: string;
   memberId: string;
-  action: 'add' | 'edit' | 'delete';
-  requestedData: Partial<Member>;
+  action: 'add' | 'edit' | 'delete' | 'delete_template';
+  requestedData: Partial<Member> | MessageTemplate;
   requestedBy: string;
   requestedAt: number;
   status: 'pending' | 'approved' | 'rejected';

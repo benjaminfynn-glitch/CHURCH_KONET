@@ -238,46 +238,56 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
     console.log("🔵 Starting addMember...", { user: user?.email, authenticated: !!user, isAdmin });
 
     try {
-      // If admin, add immediately
+      const memberCode = await generateMemberCode();
+      console.log("✅ Member code generated:", memberCode);
+
+      const payload: any = {
+        memberCode,
+        fullName: formatProperCase(memberPartial.fullName || ""),
+        gender: memberPartial.gender || null,
+        phone: memberPartial.phone || null,
+        birthday: memberPartial.birthday || null,
+        organization: formatProperCase(memberPartial.organization || ""),
+        notes: memberPartial.notes || null,
+        opt_in: typeof memberPartial.opt_in === "boolean" ? memberPartial.opt_in : true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      // If admin, add immediately with approved status
       if (isAdmin) {
-        const memberCode = await generateMemberCode();
-        console.log("✅ Member code generated:", memberCode);
-
-        const payload: any = {
-          memberCode,
-          fullName: formatProperCase(memberPartial.fullName || ""),
-          gender: memberPartial.gender || null,
-          phone: memberPartial.phone || null,
-          birthday: memberPartial.birthday || null,
-          organization: formatProperCase(memberPartial.organization || ""),
-          notes: memberPartial.notes || null,
-          opt_in: typeof memberPartial.opt_in === "boolean" ? memberPartial.opt_in : true,
-          status: 'approved',
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-
-        // remove undefined
-        Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
-
+        payload.status = 'approved';
         console.log("📝 Attempting to write to Firestore:", payload);
         const docRef = await addDoc(collection(db, "members"), cleanForFirestore(payload));
         console.log("✅ Document created with ID:", docRef.id);
-        
+
         // update local state optimistically
         setMembers((prev) => [{ id: docRef.id, ...payload }, ...prev]);
         await logActivity("Add Member", `Added ${payload.fullName}`);
         return docRef.id;
       } else {
-        // If user, create approval request
-        return await requestMemberAdd(memberPartial);
+        // If user, add with inactive status and create approval request
+        payload.status = 'inactive';
+        payload.statusMessage = 'pending admin action';
+
+        console.log("📝 Attempting to write inactive member to Firestore:", payload);
+        const docRef = await addDoc(collection(db, "members"), cleanForFirestore(payload));
+        console.log("✅ Inactive member document created with ID:", docRef.id);
+
+        // update local state optimistically
+        setMembers((prev) => [{ id: docRef.id, ...payload }, ...prev]);
+
+        // Create approval request
+        await requestMemberAdd({ ...memberPartial, id: docRef.id });
+        await logActivity("Request Add Member", `Requested addition of ${payload.fullName}`);
+        return docRef.id;
       }
     } catch (e: any) {
       console.error("❌ addMember error:", e);
       console.error("Error code:", e.code);
       console.error("Error message:", e.message);
       console.error("Full error:", JSON.stringify(e, null, 2));
-      
+
       // Provide helpful error messages
       if (e.code === "permission-denied") {
         throw new Error("Permission denied: Check Firestore security rules. You may need to configure rules to allow writes.");
@@ -355,17 +365,17 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Approval functions
   const requestMemberAdd = async (memberData: Partial<Member>) => {
     if (!db || !user) throw new Error("Database not initialized or user not authenticated");
-    
+
     try {
       const request: MemberApprovalRequest = {
-        memberId: '', // Will be set when approved
+        memberId: memberData.id || '', // Member already added with inactive status
         action: 'add',
         requestedData: memberData,
         requestedBy: user.email,
         requestedAt: Date.now(),
         status: 'pending'
       };
-      
+
       const docRef = await addDoc(collection(db, "member_approval_requests"), cleanForFirestore(request));
       await logActivity("Request Add Member", `Requested addition of ${memberData.fullName}`);
       return docRef.id;
@@ -444,30 +454,32 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Perform the requested action
       switch (request.action) {
         case 'add':
-          const memberCode = await generateMemberCode();
-          await addDoc(collection(db, "members"), {
-            ...cleanForFirestore(request.requestedData),
-            memberCode,
+          // Member already exists with inactive status, just update to approved
+          await updateDoc(doc(db, "members", request.memberId), {
             status: 'approved',
+            statusMessage: null,
             approvedBy: user.email,
             approvedAt: Date.now(),
-            createdAt: Date.now(),
             updatedAt: Date.now()
           });
           break;
-          
+
         case 'edit':
           await updateDoc(doc(db, "members", request.memberId), {
-            ...cleanForFirestore(request.requestedData),
+            ...cleanForFirestore(request.requestedData as Partial<Member>),
             status: 'approved',
             approvedBy: user.email,
             approvedAt: Date.now(),
             updatedAt: Date.now()
           });
           break;
-          
+
         case 'delete':
           await deleteDoc(doc(db, "members", request.memberId));
+          break;
+
+        case 'delete_template':
+          await deleteDoc(doc(db, "templates", request.memberId));
           break;
       }
       
@@ -611,8 +623,35 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const deleteTemplate = async (id: string) => {
-    await deleteDoc(doc(db, "templates", id));
-    await logActivity("Delete Template", id);
+    if (!db) throw new Error("Database not initialized");
+
+    try {
+      if (isAdmin) {
+        await deleteDoc(doc(db, "templates", id));
+        await logActivity("Delete Template", id);
+      } else {
+        // If user, create approval request
+        if (!user) throw new Error("User not authenticated");
+
+        const template = templates.find(t => t.id === id);
+        if (!template) throw new Error("Template not found");
+
+        const request: MemberApprovalRequest = {
+          memberId: id, // Use for template id
+          action: 'delete_template' as any,
+          requestedData: template,
+          requestedBy: user.email,
+          requestedAt: Date.now(),
+          status: 'pending'
+        };
+
+        await addDoc(collection(db, "member_approval_requests"), cleanForFirestore(request));
+        await logActivity("Request Delete Template", `Requested deletion of template ${template.title}`);
+      }
+    } catch (e) {
+      console.error("deleteTemplate error", e);
+      throw e;
+    }
   };
 
   const deleteUser = async (id: string) => {
