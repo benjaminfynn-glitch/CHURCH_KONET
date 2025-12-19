@@ -23,8 +23,36 @@ const Dashboard: React.FC = () => {
   // SMS Balance removed - not needed for core functionality
 
   // 1. Calculate Stats
-  const totalMembers = members.length;
-  const activeMembers = members.filter(m => m.opt_in).length;
+  const activeMembers = members.filter(m => m.isActive && m.opt_in);
+  const totalMembers = activeMembers.length;
+
+  // Age-based breakdown for active members
+  const ageBreakdown = useMemo(() => {
+    const now = new Date();
+    const breakdown = {
+      children: { male: 0, female: 0 },
+      teens: { male: 0, female: 0 },
+      adults: { male: 0, female: 0 }
+    };
+
+    activeMembers.forEach(member => {
+      if (!member.birthday) return;
+      const birthDate = new Date(member.birthday);
+      const age = now.getFullYear() - birthDate.getFullYear() -
+        (now < new Date(now.getFullYear(), birthDate.getMonth(), birthDate.getDate()) ? 1 : 0);
+
+      let group: keyof typeof breakdown;
+      if (age < 13) group = 'children';
+      else if (age < 20) group = 'teens';
+      else group = 'adults';
+
+      if (member.gender === 'Male') breakdown[group].male++;
+      else if (member.gender === 'Female') breakdown[group].female++;
+    });
+
+    return breakdown;
+  }, [activeMembers]);
+
   const totalOrgs = organizations.length;
   
   // Calculate Messages Sent This Month
@@ -151,13 +179,16 @@ const Dashboard: React.FC = () => {
           <div className="mt-4 flex items-center gap-2">
             <span className="text-sm text-primary/50">📅 {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
             {user && (
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                user.role === 'admin'
-                  ? 'bg-secondary/10 text-secondary border border-secondary/20'
-                  : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-              }`}>
-                {user.role === 'admin' ? '👑 Admin' : '👤 User'}
-              </span>
+              <>
+                <span className="text-sm text-primary/70">Welcome, {user.fullName}</span>
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  user.role === 'admin'
+                    ? 'bg-secondary/10 text-secondary border border-secondary/20'
+                    : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                }`}>
+                  {user.role === 'admin' ? '👑 Admin' : '👤 User'}
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -176,9 +207,9 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Top Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <DashboardCard
-          title="Total Members"
+          title="Total Active Members"
           value={totalMembers}
           icon="👥"
           color="blue"
@@ -195,6 +226,63 @@ const Dashboard: React.FC = () => {
           icon="🎂"
           color="purple"
         />
+        <DashboardCard
+          title="Organizations"
+          value={totalOrgs}
+          icon="🏢"
+          color="orange"
+        />
+      </div>
+
+      {/* Member Breakdown */}
+      <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-primary/20 shadow-lg p-6">
+        <h3 className="text-lg font-bold text-primary mb-4">Member Breakdown by Age & Gender</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Children */}
+          <div className="text-center">
+            <h4 className="font-semibold text-primary mb-2">Children (0-12)</h4>
+            <div className="flex justify-center gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{ageBreakdown.children.male}</div>
+                <div className="text-sm text-primary/70">Male</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-pink-600">{ageBreakdown.children.female}</div>
+                <div className="text-sm text-primary/70">Female</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Teens */}
+          <div className="text-center">
+            <h4 className="font-semibold text-primary mb-2">Teens (13-19)</h4>
+            <div className="flex justify-center gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{ageBreakdown.teens.male}</div>
+                <div className="text-sm text-primary/70">Male</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-pink-600">{ageBreakdown.teens.female}</div>
+                <div className="text-sm text-primary/70">Female</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Adults */}
+          <div className="text-center">
+            <h4 className="font-semibold text-primary mb-2">Adults (20+)</h4>
+            <div className="flex justify-center gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{ageBreakdown.adults.male}</div>
+                <div className="text-sm text-primary/70">Male</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-pink-600">{ageBreakdown.adults.female}</div>
+                <div className="text-sm text-primary/70">Female</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Content Grid */}

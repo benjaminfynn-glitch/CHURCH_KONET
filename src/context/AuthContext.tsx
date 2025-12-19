@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userData = docSnap.data();
         return {
           role: userData.role || 'user',
-          displayName: userData.displayName || 'User'
+          displayName: userData.fullName || 'User'
         };
       } else {
         console.warn(`No user document found for UID: ${uid}. Using default values.`);

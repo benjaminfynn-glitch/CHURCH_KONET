@@ -172,25 +172,18 @@ export default function ApprovalManagementPage() {
                   </div>
                 )}
 
-                {request.action === 'edit' && (
+                {request.action === 'edit' && request.changes && (
                   <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
-                    <h4 className="font-medium text-slate-900 dark:text-white mb-2">Member Updates</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {(request.requestedData as Partial<Member>).fullName && (
-                        <div><span className="font-medium">Name:</span> {formatProperCase((request.requestedData as Partial<Member>).fullName)}</div>
-                      )}
-                      {(request.requestedData as Partial<Member>).phone && (
-                        <div><span className="font-medium">Phone:</span> {(request.requestedData as Partial<Member>).phone}</div>
-                      )}
-                      {(request.requestedData as Partial<Member>).gender && (
-                        <div><span className="font-medium">Gender:</span> {(request.requestedData as Partial<Member>).gender}</div>
-                      )}
-                      {(request.requestedData as Partial<Member>).birthday && (
-                        <div><span className="font-medium">Birthday:</span> {(request.requestedData as Partial<Member>).birthday}</div>
-                      )}
-                      {(request.requestedData as Partial<Member>).organization && (
-                        <div className="col-span-2"><span className="font-medium">Organization:</span> {formatProperCase((request.requestedData as Partial<Member>).organization)}</div>
-                      )}
+                    <h4 className="font-medium text-slate-900 dark:text-white mb-2">Requested Changes</h4>
+                    <div className="space-y-2 text-sm">
+                      {request.changes.map((change, index) => (
+                        <div key={index} className="flex items-center gap-4">
+                          <span className="font-medium capitalize">{change.field}:</span>
+                          <span className="text-red-600 line-through">{String(change.oldValue || 'N/A')}</span>
+                          <span className="text-gray-400">→</span>
+                          <span className="text-green-600">{String(change.newValue || 'N/A')}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

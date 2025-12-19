@@ -162,6 +162,12 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
             organization: data.organization || "",
             notes: data.notes || "",
             opt_in: data.opt_in ?? true,
+            isActive: data.isActive ?? false,
+            status: data.status || "inactive",
+            statusMessage: data.statusMessage || null,
+            approvedBy: data.approvedBy || null,
+            approvedAt: data.approvedAt || null,
+            rejectionReason: data.rejectionReason || null,
             createdAt: data.createdAt ?? null,
             updatedAt: data.updatedAt ?? null,
           } as Member;
@@ -254,9 +260,10 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updatedAt: Date.now(),
       };
 
-      // If admin, add immediately with approved status
+      // If admin, add immediately with active status
       if (isAdmin) {
-        payload.status = 'approved';
+        payload.isActive = true;
+        payload.status = 'active';
         console.log("📝 Attempting to write to Firestore:", payload);
         const docRef = await addDoc(collection(db, "members"), cleanForFirestore(payload));
         console.log("✅ Document created with ID:", docRef.id);
@@ -267,6 +274,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return docRef.id;
       } else {
         // If user, add with inactive status and create approval request
+        payload.isActive = false;
         payload.status = 'inactive';
         payload.statusMessage = 'pending admin action';
 
@@ -387,20 +395,31 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const requestMemberEdit = async (id: string, updates: Partial<Member>) => {
     if (!db || !user) throw new Error("Database not initialized or user not authenticated");
-    
+
     try {
       const member = getMember(id);
       if (!member) throw new Error("Member not found");
-      
+
+      // Calculate changes
+      const changes: Array<{field: string, oldValue: any, newValue: any}> = [];
+      Object.keys(updates).forEach(key => {
+        const oldValue = (member as any)[key];
+        const newValue = (updates as any)[key];
+        if (oldValue !== newValue) {
+          changes.push({ field: key, oldValue, newValue });
+        }
+      });
+
       const request: MemberApprovalRequest = {
         memberId: id,
         action: 'edit',
         requestedData: { ...member, ...updates },
         requestedBy: user.email,
         requestedAt: Date.now(),
-        status: 'pending'
+        status: 'pending',
+        changes
       };
-      
+
       await addDoc(collection(db, "member_approval_requests"), cleanForFirestore(request));
       await logActivity("Request Edit Member", `Requested edit of ${id}`);
     } catch (e) {
@@ -454,9 +473,10 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Perform the requested action
       switch (request.action) {
         case 'add':
-          // Member already exists with inactive status, just update to approved
+          // Member already exists with inactive status, update to active
           await updateDoc(doc(db, "members", request.memberId), {
-            status: 'approved',
+            isActive: true,
+            status: 'active',
             statusMessage: null,
             approvedBy: user.email,
             approvedAt: Date.now(),

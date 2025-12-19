@@ -12,7 +12,8 @@ export interface Member {
   createdAt?: number | null;
   updatedAt?: number | null;
   // Approval fields
-  status?: 'inactive' | 'pending' | 'approved' | 'rejected';
+  isActive?: boolean;
+  status?: 'inactive' | 'active' | 'pending' | 'approved' | 'rejected';
   statusMessage?: string;
   approvedBy?: string;
   approvedAt?: number | null;
@@ -31,6 +32,7 @@ export interface MemberApprovalRequest {
   reviewedAt?: number;
   rejectionReason?: string;
   deleteReason?: 'Not a Member' | 'Transferred' | 'Ceased to Fellowship' | 'Deceased';
+  changes?: Array<{field: string, oldValue: any, newValue: any}>;
 }
 
 export enum MessageType {

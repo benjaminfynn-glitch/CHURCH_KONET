@@ -213,7 +213,7 @@ export default function MembersPage() {
     addToast("Template downloaded successfully", "success");
   };
 
-  const activeMembers = useMemo(() => members.filter(m => m.opt_in).length, [members]);
+  const activeMembers = useMemo(() => members.filter(m => m.isActive && m.opt_in).length, [members]);
 
   const visible = useMemo(() => {
     let filtered = members.slice();
