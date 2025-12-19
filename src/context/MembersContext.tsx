@@ -255,7 +255,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         birthday: memberPartial.birthday || null,
         organizations: Array.isArray(memberPartial.organizations)
           ? memberPartial.organizations.map(org => formatProperCase(org))
-          : (memberPartial.organization ? [formatProperCase(memberPartial.organization)] : []),
+          : ((memberPartial as any).organization ? [formatProperCase((memberPartial as any).organization)] : []),
         notes: memberPartial.notes || null,
         opt_in: typeof memberPartial.opt_in === "boolean" ? memberPartial.opt_in : true,
         createdAt: Date.now(),
