@@ -6,7 +6,7 @@ import {
   User as FirebaseUser,
   AuthError
 } from 'firebase/auth';
-import { doc, getDoc, onSnapshot, getFirestore } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, serverTimestamp, getFirestore } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 interface User {
@@ -31,24 +31,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserData = async (uid: string): Promise<{role: 'admin' | 'user', displayName: string}> => {
-    try {
-      const userDoc = await doc(db, 'users', uid);
-      const docSnap = await getDoc(userDoc);
-      
-      if (docSnap.exists()) {
-        const userData = docSnap.data();
-        return {
-          role: userData.role || 'user',
-          displayName: userData.fullName || 'User'
-        };
-      } else {
-        console.warn(`No user document found for UID: ${uid}. Using default values.`);
-        return { role: 'user', displayName: 'User' };
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      return { role: 'user', displayName: 'User' };
+  // Ensure Firestore user document exists and is up to date
+  const ensureUserProfile = async (firebaseUser: any): Promise<{role: 'admin' | 'user', displayName: string}> => {
+    const userRef = doc(db, 'users', firebaseUser.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      // NEW USER → CREATE PROFILE
+      console.log('Creating new user profile for:', firebaseUser.uid);
+      await setDoc(userRef, {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        fullName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+        role: 'user',
+        isActive: true,
+        createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp(),
+      });
+      return {
+        role: 'user',
+        displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User'
+      };
+    } else {
+      // EXISTING USER → UPDATE LOGIN TIME
+      console.log('Updating existing user profile for:', firebaseUser.uid);
+      await setDoc(
+        userRef,
+        {
+          lastLogin: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      const userData = userSnap.data();
+      return {
+        role: userData.role || 'user',
+        displayName: userData.fullName || 'User'
+      };
     }
   };
 
@@ -61,45 +80,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let userProfileUnsubscribe: (() => void) | null = null;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         // Clean up previous subscription
         if (userProfileUnsubscribe) {
           userProfileUnsubscribe();
         }
 
-        // Set up real-time subscription to user profile
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        userProfileUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
-          try {
-            let role: 'admin' | 'user' = 'user';
-            let displayName = 'User';
+        try {
+          // Ensure user profile exists first
+          await ensureUserProfile(currentUser);
 
-            if (docSnap.exists()) {
-              const userData = docSnap.data();
-              role = userData.role || 'user';
-              displayName = userData.fullName || 'User';
-            } else {
-              console.warn(`No user document found for UID: ${currentUser.uid}. Using default values.`);
+          // Set up real-time subscription to user profile
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          userProfileUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
+            try {
+              let role: 'admin' | 'user' = 'user';
+              let displayName = 'User';
+
+              if (docSnap.exists()) {
+                const userData = docSnap.data();
+                role = userData.role || 'user';
+                displayName = userData.fullName || 'User';
+              }
+
+              setUser({
+                uid: currentUser.uid,
+                email: currentUser.email || '',
+                fullName: displayName,
+                role
+              });
+              setIsLoading(false);
+            } catch (error) {
+              console.error('Error in user profile snapshot:', error);
+              setUser(null);
+              setIsLoading(false);
             }
-
-            setUser({
-              uid: currentUser.uid,
-              email: currentUser.email || '',
-              fullName: displayName,
-              role
-            });
-            setIsLoading(false);
-          } catch (error) {
-            console.error('Error in user profile snapshot:', error);
+          }, (error) => {
+            console.error('User profile subscription error:', error);
             setUser(null);
             setIsLoading(false);
-          }
-        }, (error) => {
-          console.error('User profile subscription error:', error);
+          });
+        } catch (error) {
+          console.error('Error ensuring user profile:', error);
           setUser(null);
           setIsLoading(false);
-        });
+        }
       } else {
         // Clean up subscription when user logs out
         if (userProfileUnsubscribe) {
@@ -129,12 +155,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const currentUser = userCredential.user;
       
-      // Immediately fetch user data after successful login
-      const role = (await fetchUserData(currentUser.uid)).role;
+      // Ensure user profile exists and get user data
+      const { role, displayName } = await ensureUserProfile(currentUser);
       setUser({
         uid: currentUser.uid,
         email: currentUser.email || '',
-        fullName: currentUser.displayName || 'User',
+        fullName: displayName,
         role
       });
       
