@@ -23,8 +23,28 @@ const Dashboard: React.FC = () => {
   // SMS Balance removed - not needed for core functionality
 
   // 1. Calculate Stats
-  const activeMembers = members.filter(m => m.isActive && m.opt_in);
+  const activeMembers = members.filter(m => {
+    // Handle both boolean and string values for robustness
+    const isActive = typeof m.isActive === 'boolean' ? m.isActive : m.isActive === 'true';
+    const optIn = typeof m.opt_in === 'boolean' ? m.opt_in : m.opt_in === 'true';
+    return isActive && optIn;
+  });
   const totalMembers = activeMembers.length;
+
+  // Debug logging
+  console.log('Dashboard Debug:', {
+    totalMembersInDB: members.length,
+    activeMembersCount: totalMembers,
+    membersSample: members.slice(0, 3).map(m => ({
+      id: m.id,
+      fullName: m.fullName,
+      isActive: m.isActive,
+      opt_in: m.opt_in,
+      status: m.status
+    })),
+    inactiveMembers: members.filter(m => !m.isActive).length,
+    optedOutMembers: members.filter(m => !m.opt_in).length
+  });
 
   // Age-based breakdown for active members
   const ageBreakdown = useMemo(() => {
