@@ -10,15 +10,16 @@ import {
 } from "./_middleware.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return handleOptions(res);
-  }
+  try {
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+      return handleOptions(res);
+    }
 
-  // Apply security headers
-  applySecurityHeaders(res);
+    // Apply security headers
+    applySecurityHeaders(res);
 
-  if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
+    if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
 
   // Apply rate limiting
   try {
@@ -396,5 +397,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     return res.status(500).json({ message: 'Internal Server Error', error: String(err) });
+    }
+  } catch (unhandledError: any) {
+    // Global error handler - ensures we ALWAYS return JSON
+    console.error('=== UNHANDLED BROADCAST ERROR ===');
+    console.error('Error:', unhandledError);
+    console.error('Stack:', unhandledError.stack);
+    console.error('=== END UNHANDLED ERROR ===');
+
+    // Audit log critical error
+    try {
+      await logAuditEvent(
+        'SMS_BROADCAST_CRITICAL_ERROR',
+        'system',
+        {
+          error: String(unhandledError),
+          stack: unhandledError.stack,
+          url: req.url,
+          method: req.method,
+          body: req.body
+        },
+        req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
+        req.headers['user-agent'] as string
+      );
+    } catch (auditError) {
+      console.error('Failed to audit critical error:', auditError);
+    }
+
+    // Always return JSON - never let Vercel return HTML
+    return res.status(500).json({
+      success: false,
+      error: 'Critical server error occurred',
+      message: 'An unexpected error occurred while processing your SMS broadcast. Please try again.',
+      details: process.env.NODE_ENV === 'development' ? String(unhandledError) : undefined
+    });
   }
 }
