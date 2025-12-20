@@ -14,14 +14,22 @@ async function getAuthToken(): Promise<string | null> {
 
 // Helper function to handle API responses
 async function handleApiResponse(response: Response, operation: string) {
+  // ALWAYS get response as text first to handle non-JSON responses safely
+  const rawText = await response.text();
+  console.log(`=== ${operation.toUpperCase()} RAW RESPONSE ===`);
+  console.log('Status:', response.status, response.statusText);
+  console.log('Raw Response:', rawText.substring(0, 500) + (rawText.length > 500 ? '...' : ''));
+  console.log(`=== END ${operation.toUpperCase()} RESPONSE ===`);
+
   if (!response.ok) {
     let errorMessage = `Failed to ${operation}`;
-    let errorDetails = '';
+    let errorDetails = rawText;
 
+    // Try to parse as JSON first
     try {
-      const errorData = await response.json();
+      const errorData = JSON.parse(rawText);
       errorMessage = errorData.message || errorData.error || errorMessage;
-      errorDetails = errorData.details || '';
+      errorDetails = errorData.details || rawText;
 
       // Handle specific API errors
       if (errorData.error === 'Too many requests') {
@@ -33,28 +41,22 @@ async function handleApiResponse(response: Response, operation: string) {
       } else if (errorData.message?.includes('Authentication')) {
         errorMessage = 'Authentication failed. Please log out and log back in.';
       }
-    } catch (parseError) {
-      // If we can't parse the error response, check if it's HTML
-      try {
-        const textResponse = await response.text();
-        if (textResponse.includes('<html') || textResponse.includes('<HTML')) {
-          // HTML error page - likely server/config issue
-          if (response.status === 404) {
-            errorMessage = 'SMS service endpoint not found. Please contact support.';
-          } else if (response.status === 500) {
-            errorMessage = 'SMS service is temporarily unavailable. Please try again later.';
-          } else if (response.status === 401 || response.status === 403) {
-            errorMessage = 'Authentication failed. Please log out and log back in.';
-          } else {
-            errorMessage = 'SMS service error. Please try again or contact support.';
-          }
+    } catch (jsonParseError) {
+      // Response is not JSON - handle as plain text/HTML
+      if (rawText.includes('<html') || rawText.includes('<HTML') || rawText.includes('<body')) {
+        // HTML error page - likely server/config issue
+        if (response.status === 404) {
+          errorMessage = 'SMS service endpoint not found. Please contact support.';
+        } else if (response.status === 500) {
+          errorMessage = 'SMS service is temporarily unavailable. Please try again later.';
+        } else if (response.status === 401 || response.status === 403) {
+          errorMessage = 'Authentication failed. Please log out and log back in.';
         } else {
-          // Other text response
-          errorMessage = `${errorMessage}: ${response.status} ${response.statusText}`;
+          errorMessage = 'SMS service returned an error page. Please try again or contact support.';
         }
-      } catch (textError) {
-        // Fallback to status-based error
-        errorMessage = `${errorMessage}: ${response.status} ${response.statusText}`;
+      } else {
+        // Plain text error - use it directly
+        errorMessage = rawText.trim() || `${errorMessage}: ${response.status} ${response.statusText}`;
       }
     }
 
@@ -64,20 +66,14 @@ async function handleApiResponse(response: Response, operation: string) {
     throw error;
   }
 
+  // Response is OK - try to parse as JSON
   try {
-    return await response.json();
-  } catch (error) {
-    // If JSON parsing fails, check if it's an HTML response
-    try {
-      const textResponse = await response.clone().text();
-      if (textResponse.includes('<html') || textResponse.includes('<HTML')) {
-        throw new Error('Received HTML error page instead of JSON. SMS service may be misconfigured.');
-      }
-    } catch (htmlCheckError) {
-      // Ignore HTML check error
-    }
-
-    throw new Error(`Invalid JSON response from ${operation}. Please try again.`);
+    const data = JSON.parse(rawText);
+    return data;
+  } catch (jsonParseError) {
+    // Response is OK but not JSON - this shouldn't happen with our API
+    console.error(`Unexpected non-JSON success response from ${operation}:`, rawText);
+    throw new Error(`SMS service returned an unexpected response format. Please contact support.`);
   }
 }
 
