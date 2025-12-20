@@ -1,6 +1,6 @@
 import { getAuth } from 'firebase/auth';
 
-const API_BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000');
+const API_BASE = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000');
 
 // Helper function to get auth token
 async function getAuthToken(): Promise<string | null> {
@@ -22,9 +22,40 @@ async function handleApiResponse(response: Response, operation: string) {
       const errorData = await response.json();
       errorMessage = errorData.message || errorData.error || errorMessage;
       errorDetails = errorData.details || '';
+
+      // Handle specific API errors
+      if (errorData.error === 'Too many requests') {
+        errorMessage = 'SMS sending limit exceeded. Please wait 15 minutes before sending more messages.';
+      } else if (errorData.error?.includes('rate limit')) {
+        errorMessage = 'Too many SMS requests. Please wait before trying again.';
+      } else if (errorData.message?.includes('Missing API key')) {
+        errorMessage = 'SMS service is not properly configured. Please contact support.';
+      } else if (errorData.message?.includes('Authentication')) {
+        errorMessage = 'Authentication failed. Please log out and log back in.';
+      }
     } catch (parseError) {
-      // If we can't parse the error response, use status text
-      errorMessage = `${errorMessage}: ${response.status} ${response.statusText}`;
+      // If we can't parse the error response, check if it's HTML
+      try {
+        const textResponse = await response.text();
+        if (textResponse.includes('<html') || textResponse.includes('<HTML')) {
+          // HTML error page - likely server/config issue
+          if (response.status === 404) {
+            errorMessage = 'SMS service endpoint not found. Please contact support.';
+          } else if (response.status === 500) {
+            errorMessage = 'SMS service is temporarily unavailable. Please try again later.';
+          } else if (response.status === 401 || response.status === 403) {
+            errorMessage = 'Authentication failed. Please log out and log back in.';
+          } else {
+            errorMessage = 'SMS service error. Please try again or contact support.';
+          }
+        } else {
+          // Other text response
+          errorMessage = `${errorMessage}: ${response.status} ${response.statusText}`;
+        }
+      } catch (textError) {
+        // Fallback to status-based error
+        errorMessage = `${errorMessage}: ${response.status} ${response.statusText}`;
+      }
     }
 
     const error = new Error(errorMessage);
@@ -36,7 +67,17 @@ async function handleApiResponse(response: Response, operation: string) {
   try {
     return await response.json();
   } catch (error) {
-    throw new Error(`Invalid response format from ${operation}`);
+    // If JSON parsing fails, check if it's an HTML response
+    try {
+      const textResponse = await response.clone().text();
+      if (textResponse.includes('<html') || textResponse.includes('<HTML')) {
+        throw new Error('Received HTML error page instead of JSON. SMS service may be misconfigured.');
+      }
+    } catch (htmlCheckError) {
+      // Ignore HTML check error
+    }
+
+    throw new Error(`Invalid JSON response from ${operation}. Please try again.`);
   }
 }
 

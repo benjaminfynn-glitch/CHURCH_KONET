@@ -401,17 +401,51 @@ const Broadcast: React.FC = () => {
       console.error('Error details:', JSON.stringify(e, null, 2));
       console.error('=== END FRONTEND ERROR ===');
 
+      // Determine error type and provide appropriate user message
+      let errorTitle = 'Broadcast Failed';
+      let errorDescription = 'Please check your connection and try again.';
+      let showRetry = true;
+      let persistent = true;
+
       const errorMessage = e.message || 'Failed to send broadcast';
+
+      if (errorMessage.includes('rate limit') || errorMessage.includes('Too many')) {
+        errorTitle = 'Rate Limit Exceeded';
+        errorDescription = 'You\'ve sent too many SMS messages. Please wait 15 minutes before sending more.';
+        showRetry = false;
+        persistent = false;
+      } else if (errorMessage.includes('Authentication') || errorMessage.includes('log out')) {
+        errorTitle = 'Authentication Error';
+        errorDescription = 'Please log out and log back in to refresh your session.';
+        showRetry = false;
+      } else if (errorMessage.includes('endpoint not found') || errorMessage.includes('misconfigured')) {
+        errorTitle = 'Service Configuration Error';
+        errorDescription = 'SMS service is not properly configured. Please contact support.';
+        showRetry = false;
+      } else if (errorMessage.includes('temporarily unavailable')) {
+        errorTitle = 'Service Temporarily Unavailable';
+        errorDescription = 'SMS service is currently down. Please try again in a few minutes.';
+        showRetry = true;
+        persistent = false;
+      } else if (errorMessage.includes('Network error') || errorMessage.includes('fetch')) {
+        errorTitle = 'Connection Error';
+        errorDescription = 'Unable to connect to SMS service. Please check your internet connection.';
+        showRetry = true;
+        persistent = false;
+      }
+
+      const toastActions = showRetry ? [
+        {
+          label: 'Retry',
+          onClick: () => confirmSend(),
+        }
+      ] : [];
+
       addToast(errorMessage, 'error', {
-        title: 'Broadcast Failed',
-        description: 'Please check your connection and try again. If the problem persists, contact support.',
-        actions: [
-          {
-            label: 'Retry',
-            onClick: () => confirmSend(),
-          }
-        ],
-        persistent: true,
+        title: errorTitle,
+        description: errorDescription,
+        actions: toastActions,
+        persistent: persistent,
       });
     } finally {
       setIsSending(false);
