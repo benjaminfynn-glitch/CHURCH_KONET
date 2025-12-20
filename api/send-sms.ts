@@ -1,13 +1,27 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import axios from "axios";
+import {
+  requireAuth,
+  smsRateLimit,
+  validateSMSInput,
+  handleValidationErrors,
+  applySecurityHeaders,
+  handleOptions,
+  logAuditEvent
+} from "./_middleware.js";
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // Simple test log to verify code is running
-  console.log("🚀=== NEW SEND-SMS HANDLER STARTED ===🚀");
-  
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return handleOptions(res);
+  }
+
+  // Apply security headers
+  applySecurityHeaders(res);
+
   // ✅ Allow ONLY POST
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -15,20 +29,43 @@ export default async function handler(
     });
   }
 
+  // Apply rate limiting
+  try {
+    await new Promise((resolve, reject) => {
+      smsRateLimit(req as any, res as any, (result: any) => {
+        if (result instanceof Error) {
+          return reject(result);
+        }
+        resolve(result);
+      });
+    });
+  } catch (rateLimitError: any) {
+    return res.status(429).json({
+      error: rateLimitError.message || 'Too many requests',
+      retryAfter: rateLimitError.retryAfter || '15 minutes'
+    });
+  }
+
+  // Authenticate user
+  const authResult = await requireAuth(req, res);
+  if (!authResult) return;
+
+  const { user } = authResult;
+
+  // Validate input
+  await Promise.all(validateSMSInput.map(validation => validation.run(req)));
+  if (handleValidationErrors(req, res)) return;
+
   try {
     const { text, sender, destinations } = req.body;
 
-    // Log authorization header for debugging
-    console.log("Auth Header:", req.headers.authorization);
-    
-    // Log API key being used for debugging
-    console.log("API Key from env:", process.env.SMSONLINEGH_API_KEY);
+    // Log API key being used for debugging (partial for security)
     console.log("API Key length:", process.env.SMSONLINEGH_API_KEY?.length || 'N/A');
 
-    // Basic validation
-    if (!text || !sender || !destinations?.length) {
+    // Additional server-side validation
+    if (!text?.trim() || !destinations?.length) {
       return res.status(400).json({
-        error: "Missing required fields",
+        error: "Missing required fields: text and destinations",
       });
     }
 
@@ -125,13 +162,41 @@ export default async function handler(
         message_id: item.id
       })) : []
     };
-    
+
+    // Audit log successful SMS send
+    await logAuditEvent(
+      'SMS_SEND',
+      user.uid,
+      {
+        batch: json.data?.batch,
+        destinationCount: destinations.length,
+        sender: sender,
+        success: true
+      },
+      req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
+      req.headers['user-agent'] as string
+    );
+
     return res.status(200).json(responseData);
   } catch (error: any) {
     console.error("SMS Send Error:", error?.response?.data || error.message);
     console.error("Error stack:", error.stack);
     console.error("Error type:", typeof error);
     console.error("Error object:", JSON.stringify(error, null, 2));
+
+    // Audit log failed SMS send
+    await logAuditEvent(
+      'SMS_SEND_FAILED',
+      user.uid,
+      {
+        error: error.message,
+        destinationCount: req.body.destinations?.length || 0,
+        sender: req.body.sender,
+        success: false
+      },
+      req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
+      req.headers['user-agent'] as string
+    );
 
     return res.status(500).json({
       success: false,

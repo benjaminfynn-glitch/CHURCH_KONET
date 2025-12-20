@@ -19,5 +19,5 @@
     "noEmit": true
   },
   "include": ["src", "env.d.ts"],
-  "exclude": ["src/api/**/*", "api/**/*", "src/services/geminiService.ts"]
+  "exclude": ["src/api/**/*", "api/**/*", "src/services/geminiService.ts", "**/*.test.ts", "**/*.test.tsx", "**/__tests__/**/*"]
 }

@@ -72,6 +72,44 @@ const Broadcast: React.FC = () => {
     }
   }, [location.state]);
 
+  // Phone number normalization utility
+  const normalizePhone = (phone: string): string => {
+    return phone.trim().replace(/\s+/g, '');
+  };
+
+  // Get unique recipients for selected organizations
+  const getUniqueRecipientsForOrganizations = useMemo(() => {
+    if (selectedOrgs.length === 0) return { recipients: [], uniquePhones: new Set<string>(), totalMembers: 0 };
+
+    // Fetch ALL active members who belong to ANY of the selected organizations
+    const matchingMembers = members.filter(m =>
+      m.isActive === true &&
+      m.organizations?.some(org => selectedOrgs.includes(org))
+    );
+
+    // Collect and de-duplicate phone numbers
+    const phoneSet = new Set<string>();
+    const uniqueRecipients: { id: string, fullName: string, phone: string }[] = [];
+
+    matchingMembers.forEach(member => {
+      const normalizedPhone = normalizePhone(member.phone);
+      if (!phoneSet.has(normalizedPhone)) {
+        phoneSet.add(normalizedPhone);
+        uniqueRecipients.push({
+          id: member.id,
+          fullName: member.fullName || '',
+          phone: member.phone
+        });
+      }
+    });
+
+    return {
+      recipients: uniqueRecipients,
+      uniquePhones: phoneSet,
+      totalMembers: matchingMembers.length
+    };
+  }, [selectedOrgs, members]);
+
   // Derived Data
   const filteredMembers = useMemo(() => {
     if (!searchQuery) return members;
@@ -104,18 +142,21 @@ const Broadcast: React.FC = () => {
       let recipientCount = 0;
       if (destinationMode === 'all') {
          recipientCount = uniqueRecipientsList.length;
+      } else if (destinationMode === 'organization') {
+         // Organization mode: Use unique recipients count
+         recipientCount = getUniqueRecipientsForOrganizations.recipients.length;
       } else if (isPersonalized) {
-          // Personalized: Every selected member gets a message
-          recipientCount = selectedMembers.length;
+           // Personalized: Every selected member gets a message
+           recipientCount = selectedMembers.length;
       } else {
-          // Non-personalized: Unique phone numbers only
-          const phones = members
-            .filter(m => selectedMembers.includes(m.id))
-            .map(m => m.phone);
-          recipientCount = new Set(phones).size;
+           // Non-personalized: Unique phone numbers only
+           const phones = members
+             .filter(m => selectedMembers.includes(m.id))
+             .map(m => m.phone);
+           recipientCount = new Set(phones.map(normalizePhone)).size;
       }
       return recipientCount * smsStats.totalCost;
-  }, [selectedMembers, isPersonalized, members, smsStats.totalCost, destinationMode, uniqueRecipientsList]);
+  }, [selectedMembers, isPersonalized, members, smsStats.totalCost, destinationMode, uniqueRecipientsList, getUniqueRecipientsForOrganizations]);
 
   // Balance checking removed - application should not block SMS sending based on balance verification
 
@@ -136,9 +177,9 @@ const Broadcast: React.FC = () => {
     }
     setSelectedOrgs(newOrgs);
 
-    // Update selected members based on combined organizations
-    const membersInOrgs = members.filter(m => m.organization && newOrgs.includes(m.organization)).map(m => m.id);
-    setSelectedMembers(membersInOrgs);
+    // Update selected members based on combined organizations - use unique recipients
+    const uniqueRecipients = getUniqueRecipientsForOrganizations.recipients;
+    setSelectedMembers(uniqueRecipients.map(r => r.id));
     setIsPersonalized(false); // Organization messages usually standard
   };
 
@@ -196,7 +237,11 @@ const Broadcast: React.FC = () => {
 
   // Send Logic
   const handlePreview = () => {
-    if (selectedMembers.length === 0 || !messageText) {
+    const hasRecipients = destinationMode === 'organization'
+      ? getUniqueRecipientsForOrganizations.recipients.length > 0
+      : selectedMembers.length > 0;
+
+    if (!hasRecipients || !messageText) {
       addToast('Please select destinations and enter a message.', 'error');
       return;
     }
@@ -217,32 +262,54 @@ const Broadcast: React.FC = () => {
     setShowPreviewModal(true);
   };
 
+  // Utility function to get recipients and destinations based on current mode
+  const getRecipientsAndDestinations = () => {
+    let targets: any[];
+    let destinations: string[] | SMSDestinationPersonalized[];
+
+    if (destinationMode === 'organization') {
+      // Organization mode: Use pre-calculated unique recipients
+      targets = getUniqueRecipientsForOrganizations.recipients;
+      destinations = targets.map(r => r.phone);
+    } else {
+      // Other modes: Use selected members
+      targets = members.filter(m => selectedMembers.includes(m.id));
+
+      // For birthday messages, always treat as regular broadcast (no personalization)
+      if (isBirthdayFlow) {
+        // BIRTHDAY: Remove duplicate phone numbers - send one message per unique number
+        const uniquePhones = new Set<string>(targets.map(m => normalizePhone(m.phone)));
+        destinations = Array.from(uniquePhones);
+      } else if (isPersonalized) {
+        // PERSONALIZED: Allow duplicates (e.g. twins sharing a phone number for birthday wishes)
+        // Each entry needs specific values (name)
+        destinations = targets.map(m => ({
+          number: m.phone,
+          values: [m.fullName?.split(' ')[0]] // First name only
+        }));
+      } else {
+        // NON-PERSONALIZED / GENERAL BROADCAST: Remove duplicate phone numbers
+        // We only want to send one message per unique number
+        const uniquePhones = new Set<string>(targets.map(m => normalizePhone(m.phone)));
+        destinations = Array.from(uniquePhones);
+      }
+    }
+
+    return { targets, destinations };
+  };
+
   const confirmSend = async () => {
+    // Check if we have recipients for organization mode
+    if (destinationMode === 'organization' && getUniqueRecipientsForOrganizations.recipients.length === 0) {
+      addToast('No active members found in the selected organizations.', 'error');
+      return;
+    }
+
     // Balance checking removed - application should not block SMS sending based on balance verification
     // SMSONLINEGH will handle all validation and processing
     setIsSending(true);
 
-    const targets = members.filter(m => selectedMembers.includes(m.id));
-    let destinations: string[] | SMSDestinationPersonalized[];
-
-    // For birthday messages, always treat as regular broadcast (no personalization)
-    if (isBirthdayFlow) {
-      // BIRTHDAY: Remove duplicate phone numbers - send one message per unique number
-      const uniquePhones = new Set<string>(targets.map(m => m.phone));
-      destinations = Array.from(uniquePhones);
-    } else if (isPersonalized) {
-      // PERSONALIZED: Allow duplicates (e.g. twins sharing a phone number for birthday wishes)
-      // Each entry needs specific values (name)
-      destinations = targets.map(m => ({
-        number: m.phone,
-        values: [m.fullName?.split(' ')[0]] // First name only
-      }));
-    } else {
-      // NON-PERSONALIZED / GENERAL BROADCAST: Remove duplicate phone numbers
-      // We only want to send one message per unique number
-      const uniquePhones = new Set<string>(targets.map(m => m.phone));
-      destinations = Array.from(uniquePhones);
-    }
+    const { targets, destinations } = getRecipientsAndDestinations();
 
     const payload: SMSRequest = {
       text: messageText,
@@ -276,12 +343,14 @@ const Broadcast: React.FC = () => {
       
       // LOGGING & HISTORY
       const timestamp = new Date().toISOString();
-      
-      // For logging history, we still want to log against the member ID,
-      // even if the physical SMS was de-duplicated.
-      targets.forEach(member => {
+
+      // For organization mode, log against the actual recipients (de-duplicated)
+      // For other modes, log against selected members
+      const membersToLog = destinationMode === 'organization' ? targets : members.filter(m => selectedMembers.includes(m.id));
+
+      membersToLog.forEach(member => {
          const finalContent = isBirthdayFlow || isPersonalized ? messageText.replace('{$name}', member.fullName?.split(' ')[0]) : messageText;
-         
+
          const logEntry: SentMessage = {
              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
              memberId: member.id,
@@ -297,14 +366,16 @@ const Broadcast: React.FC = () => {
 
       if (isBirthdayFlow) {
           if (isResendFlow) {
-            logActivity('Birthday Message Resent', `Resent birthday wish to ${targets.map(t => t.fullName).join(', ')}`);
+            logActivity('Birthday Message Resent', `Resent birthday wish to ${membersToLog.map(t => t.fullName).join(', ')}`);
           } else {
-            logActivity('Birthday Message Sent', `Sent birthday wish to ${targets.map(t => t.fullName).join(', ')}`);
+            logActivity('Birthday Message Sent', `Sent birthday wish to ${membersToLog.map(t => t.fullName).join(', ')}`);
           }
       } else {
-          // More descriptive log for All Members
+          // More descriptive log for different modes
           if (destinationMode === 'all') {
               logActivity('Broadcast Sent', `Sent general broadcast to ALL members (${destinations.length} unique numbers)`);
+          } else if (destinationMode === 'organization') {
+              logActivity('Broadcast Sent', `Sent message to ${selectedOrgs.join(', ')} (${destinations.length} unique recipients from ${getUniqueRecipientsForOrganizations.totalMembers} active members)`);
           } else {
               logActivity('Broadcast Sent', `Sent message to ${destinations.length} recipients`);
           }
@@ -324,12 +395,24 @@ const Broadcast: React.FC = () => {
       
       const action = scheduleType === 'later' ? 'scheduled' : 'sent';
       addToast(`Broadcast ${action} successfully!`, 'success');
-    } catch (e) {
+    } catch (e: any) {
       console.error('=== FRONTEND BROADCAST ERROR ===');
       console.error('Broadcast failed:', e);
       console.error('Error details:', JSON.stringify(e, null, 2));
       console.error('=== END FRONTEND ERROR ===');
-      addToast('Failed to send broadcast. Please try again.', 'error');
+
+      const errorMessage = e.message || 'Failed to send broadcast';
+      addToast(errorMessage, 'error', {
+        title: 'Broadcast Failed',
+        description: 'Please check your connection and try again. If the problem persists, contact support.',
+        actions: [
+          {
+            label: 'Retry',
+            onClick: () => confirmSend(),
+          }
+        ],
+        persistent: true,
+      });
     } finally {
       setIsSending(false);
     }
@@ -351,7 +434,11 @@ const Broadcast: React.FC = () => {
             <h1 className="text-3xl font-bold">Send Broadcast</h1>
             <p className="text-blue-100 mt-1">Compose and send SMS messages to your congregation</p>
             <p className="text-blue-200 text-sm mt-2">
-              Recipients Selected: {selectedMembers.length > 0 ? selectedMembers.length : 'None'}
+              Recipients Selected: {
+                destinationMode === 'organization'
+                  ? (getUniqueRecipientsForOrganizations.recipients.length > 0 ? getUniqueRecipientsForOrganizations.recipients.length : 'None')
+                  : (selectedMembers.length > 0 ? selectedMembers.length : 'None')
+              }
             </p>
           </div>
 
@@ -538,8 +625,14 @@ const Broadcast: React.FC = () => {
                     
                     {selectedOrgs.length > 0 && (
                       <div className="p-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded-lg text-sm">
-                        Selected <strong>{selectedOrgs.length}</strong> groups. <br/>
-                        Total Recipients: <strong>{selectedMembers.length}</strong>
+                        Selected <strong>{selectedOrgs.length}</strong> organization{selectedOrgs.length !== 1 ? 's' : ''}. <br/>
+                        <strong>{getUniqueRecipientsForOrganizations.totalMembers}</strong> active members found. <br/>
+                        <strong>{getUniqueRecipientsForOrganizations.recipients.length}</strong> unique recipients
+                        {getUniqueRecipientsForOrganizations.totalMembers > getUniqueRecipientsForOrganizations.recipients.length && (
+                          <span className="text-xs block mt-1">
+                            ({getUniqueRecipientsForOrganizations.totalMembers - getUniqueRecipientsForOrganizations.recipients.length} duplicate phone numbers removed)
+                          </span>
+                        )}
                       </div>
                     )}
                  </div>
@@ -629,7 +722,11 @@ const Broadcast: React.FC = () => {
              <div className="pt-6 mt-6 border-t border-gray-200">
                <PrimaryButton
                  onClick={handlePreview}
-                 disabled={selectedMembers.length === 0 || !messageText}
+                 disabled={
+                   (destinationMode === 'organization'
+                     ? getUniqueRecipientsForOrganizations.recipients.length === 0
+                     : selectedMembers.length === 0) || !messageText
+                 }
                  className="w-full py-3"
                  size="lg"
                >
@@ -711,8 +808,13 @@ const Broadcast: React.FC = () => {
                        <div>
                          <p className="font-bold text-slate-900 dark:text-white text-lg leading-tight mb-1">{selectedOrgs.join(', ')}</p>
                          <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-md inline-flex">
-                            <span className="text-xs font-bold">{selectedMembers.length} Active</span>
+                            <span className="text-xs font-bold">{getUniqueRecipientsForOrganizations.recipients.length} Unique Recipients</span>
                          </div>
+                         {getUniqueRecipientsForOrganizations.totalMembers > getUniqueRecipientsForOrganizations.recipients.length && (
+                           <p className="text-xs text-slate-500 mt-1">
+                             From {getUniqueRecipientsForOrganizations.totalMembers} active members
+                           </p>
+                         )}
                        </div>
                     ) : destinationMode === 'all' ? (
                        <div>

@@ -4,10 +4,10 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const env = loadEnv(mode, '.', '');
-  
+
   // Combine process.env and loaded .env vars
   const processEnv = { ...process.env, ...env };
-  
+
   return {
     plugins: [react()],
     server: {
@@ -16,6 +16,12 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: ['./src/test/setup.ts'],
+      coverage: { provider: 'v8' },
     },
     // Removed proxy configuration - API calls will be handled directly by Vercel in production
     // For local development, the API endpoints need to be running separately or use mock data

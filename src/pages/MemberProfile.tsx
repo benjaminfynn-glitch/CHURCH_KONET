@@ -62,7 +62,7 @@ const MemberProfile: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold">{member.fullName}</h1>
             <p className="text-blue-100 mt-1">
-              {member.organization || "No Organization"}
+              {member.organizations?.join(', ') || "No Organization"}
             </p>
             <p className="text-blue-200 text-sm mt-1">
               Member ID: {formatMemberID(member.memberCode || member.id)}
@@ -112,7 +112,7 @@ const MemberProfile: React.FC = () => {
             Church Details
           </h2>
 
-          <ProfileRow label="Organization" value={member.organization || "Not assigned"} />
+          <ProfileRow label="Organization" value={member.organizations?.join(', ') || "Not assigned"} />
           <ProfileRow label="Membership Status" value={member.opt_in ? "Active" : "Inactive"} />
           <ProfileRow label="Member Since" value={member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "Unknown"} />
           {member.notes && <ProfileRow label="Notes" value={member.notes} />}

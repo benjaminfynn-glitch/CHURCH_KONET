@@ -8,6 +8,10 @@
     "build": "vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
     "setup-users": "node setup-users.js"
   },
   "dependencies": {
@@ -25,7 +29,11 @@
     "date-fns": "^3.6.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.1",
     "firebase": "^10.12.2",
+    "firebase-admin": "^13.6.0",
+    "helmet": "^8.1.0",
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
@@ -36,7 +44,11 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4.1.18",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@types/chart.js": "^2.9.41",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.3",
@@ -46,11 +58,14 @@
     "@typescript-eslint/parser": "^7.2.0",
     "@vercel/node": "^5.5.15",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.23",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
+    "jsdom": "^27.3.0",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "vitest": "^4.0.16"
   }
 }

@@ -58,6 +58,10 @@ service cloud.firestore {
     match /activity_logs/{logId} {
       allow read, write: if isAdmin();
     }
+    
+    match /audit_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
 
     /* ================= OTHER COLLECTIONS ================= */
     match /{document=**} {

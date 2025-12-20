@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Member } from "../types";
 import { useMembers } from "../context/MembersContext";
+import { useToast } from "../context/ToastContext";
 import { validatePhoneNumber } from "../services/smsUtils";
 
 type Props = {
@@ -12,7 +13,8 @@ type Props = {
 };
 
 const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSaved }) => {
-  const { addMember, updateMember, organizations } = useMembers();
+  const { addMember, updateMember, organizations, operationLoading } = useMembers();
+  const { addToast } = useToast();
 
   // Use fullName consistently
   const [form, setForm] = useState<Partial<Member>>({
@@ -24,7 +26,6 @@ const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSav
     notes: "",
     opt_in: true,
   });
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -55,30 +56,43 @@ const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSav
 
   const handleSave = async () => {
     // basic validation
-    if (!form.fullName || !form.phone || !form.birthday) {
-      alert("Please fill in required fields (Full name, Phone, Birthday).");
+    if (!form.fullName?.trim()) {
+      addToast("Full name is required", "error");
       return;
     }
-    const phone = validatePhoneNumber(form.phone || "");
-    if (!phone) {
-      alert("Invalid phone number format.");
+    if (!form.phone?.trim()) {
+      addToast("Phone number is required", "error");
+      return;
+    }
+    if (!form.birthday) {
+      addToast("Birthday is required", "error");
       return;
     }
 
-    setBusy(true);
+    const phone = validatePhoneNumber(form.phone.trim());
+    if (!phone) {
+      addToast("Invalid phone number format. Please use format: 233xxxxxxxxx", "error");
+      return;
+    }
+
     try {
       if (initial && initial.id) {
-        await updateMember(initial.id, { ...form, phone });
+        await updateMember(initial.id, { ...form, phone, fullName: form.fullName.trim() });
+        addToast("Member updated successfully", "success");
       } else {
-        await addMember({ ...form, phone });
+        await addMember({ ...form, phone, fullName: form.fullName.trim() });
+        addToast("Member added successfully", "success");
       }
       onSaved && onSaved();
       onClose();
-    } catch (e) {
+    } catch (e: any) {
       console.error("Save error", e);
-      alert("Failed to save member. See console.");
-    } finally {
-      setBusy(false);
+      const errorMessage = e.message || "Failed to save member";
+      addToast(errorMessage, "error", {
+        title: "Save Failed",
+        description: "Please check your data and try again.",
+        persistent: true,
+      });
     }
   };
 
@@ -182,8 +196,19 @@ const MemberFormModal: React.FC<Props> = ({ open, initial = null, onClose, onSav
 
         <div className="p-4 border-t dark:border-slate-700 flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 bg-gray-100 rounded">Cancel</button>
-          <button onClick={handleSave} disabled={busy} className="px-4 py-2 bg-sky-600 text-white rounded">
-            {busy ? "Saving..." : "Save"}
+          <button
+            onClick={handleSave}
+            disabled={operationLoading.addMember || operationLoading.updateMember}
+            className="px-4 py-2 bg-sky-600 text-white rounded disabled:bg-sky-400 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {(operationLoading.addMember || operationLoading.updateMember) ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                Saving...
+              </>
+            ) : (
+              "Save"
+            )}
           </button>
         </div>
       </div>

@@ -1,25 +1,57 @@
 // /api/send-personalised.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import {
+  requireAuth,
+  smsRateLimit,
+  validatePersonalizedSMSInput,
+  handleValidationErrors,
+  applySecurityHeaders,
+  handleOptions,
+  logAuditEvent
+} from "./_middleware.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return handleOptions(res);
+  }
+
+  // Apply security headers
+  applySecurityHeaders(res);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Only POST allowed' });
   }
 
+  // Apply rate limiting
+  try {
+    await new Promise((resolve, reject) => {
+      smsRateLimit(req as any, res as any, (result: any) => {
+        if (result instanceof Error) {
+          return reject(result);
+        }
+        resolve(result);
+      });
+    });
+  } catch (rateLimitError: any) {
+    return res.status(429).json({
+      error: rateLimitError.message || 'Too many requests',
+      retryAfter: rateLimitError.retryAfter || '15 minutes'
+    });
+  }
+
+  // Authenticate user
+  const authResult = await requireAuth(req, res);
+  if (!authResult) return;
+
+  const { user } = authResult;
+
+  // Validate input
+  await Promise.all(validatePersonalizedSMSInput.map(validation => validation.run(req)));
+  if (handleValidationErrors(req, res)) return;
+
   try {
     const { text, sender, destinations } = req.body;
-
-    // destinations format MUST be: [{ destination: "23324xxxx", values: { name: "John" } }]
-    if (
-      !text ||
-      !destinations ||
-      !Array.isArray(destinations) ||
-      destinations.length === 0
-    ) {
-      return res.status(400).json({
-        error: 'text and personalised destinations[] are required',
-      });
-    }
 
     const apiKey = process.env.SMSONLINEGH_API_KEY;
     const finalSender = sender || process.env.SMSONLINEGH_SENDER_ID;
@@ -144,14 +176,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       results.push(json.data);
     }
 
-    return res.status(200).json({
+    const responseData = {
       success: true,
       provider: results.flat(),
       count: individualMessages.length,
-    });
+    };
+
+    // Audit log successful personalized SMS
+    await logAuditEvent(
+      'SMS_PERSONALIZED_SEND',
+      user.uid,
+      {
+        count: individualMessages.length,
+        sender: finalSender,
+        success: true
+      },
+      req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
+      req.headers['user-agent'] as string
+    );
+
+    return res.status(200).json(responseData);
 
   } catch (err: any) {
     console.error('Personalized SMS Error:', err);
+
+    // Audit log failed personalized SMS
+    await logAuditEvent(
+      'SMS_PERSONALIZED_SEND_FAILED',
+      user.uid,
+      {
+        error: String(err),
+        destinationCount: req.body.destinations?.length || 0,
+        sender: req.body.sender,
+        success: false
+      },
+      req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
+      req.headers['user-agent'] as string
+    );
+
     return res.status(500).json({ error: String(err) });
   }
 }

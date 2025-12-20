@@ -16,48 +16,59 @@ import { ToastProvider } from './context/ToastContext';
 import { MembersProvider } from './context/MembersContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { AuthProvider } from './context/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <SettingsProvider>
-        <AuthProvider>
-          <MembersProvider>
-            <HashRouter>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<Welcome />} />
-                <Route path="/login" element={<Login />} />
-                
-                {/* Post-Login Welcome Page (Protected but without Layout) */}
-                <Route path="/welcome" element={
-                  <ProtectedRoute>
-                    <PostLoginWelcome />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Protected Routes - Wrapped in Layout */}
-                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/broadcast" element={<Broadcast />} />
-                  <Route path="/members" element={<Members />} />
-                  <Route path="/members/:id" element={<MemberProfile />} />
-                  <Route path="/settings" element={<Settings />} />
-                </Route>
+    <ErrorBoundary>
+      <ToastProvider>
+        <SettingsProvider>
+          <AuthProvider>
+            <MembersProvider>
+              <HashRouter>
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<Welcome />} />
+                  <Route path="/login" element={<Login />} />
 
-                {/* Admin-only Routes */}
-                <Route element={<AdminProtectedRoute><Layout /></AdminProtectedRoute>}>
-                  <Route path="/approval-management" element={<ApprovalManagement />} />
-                </Route>
+                  {/* Post-Login Welcome Page (Protected but without Layout) */}
+                  <Route path="/welcome" element={
+                    <ProtectedRoute>
+                      <PostLoginWelcome />
+                    </ProtectedRoute>
+                  } />
 
-                {/* Catch all redirect to dashboard (which handles auth redirect) or welcome */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </HashRouter>
-          </MembersProvider>
-        </AuthProvider>
-      </SettingsProvider>
-    </ToastProvider>
+                  {/* Protected Routes - Wrapped in Layout */}
+                  <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/broadcast" element={
+                      <ErrorBoundary>
+                        <Broadcast />
+                      </ErrorBoundary>
+                    } />
+                    <Route path="/members" element={
+                      <ErrorBoundary>
+                        <Members />
+                      </ErrorBoundary>
+                    } />
+                    <Route path="/members/:id" element={<MemberProfile />} />
+                    <Route path="/settings" element={<Settings />} />
+                  </Route>
+
+                  {/* Admin-only Routes */}
+                  <Route element={<AdminProtectedRoute><Layout /></AdminProtectedRoute>}>
+                    <Route path="/approval-management" element={<ApprovalManagement />} />
+                  </Route>
+
+                  {/* Catch all redirect to dashboard (which handles auth redirect) or welcome */}
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </HashRouter>
+            </MembersProvider>
+          </AuthProvider>
+        </SettingsProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 };
 

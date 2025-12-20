@@ -88,6 +88,15 @@ interface MembersContextType {
   activityLog: ActivityLogEntry[];
   sentMessages: SentMessage[];
   approvalRequests: MemberApprovalRequest[];
+  loading: boolean;
+  operationLoading: {
+    addMember?: boolean;
+    updateMember?: boolean;
+    deleteMember?: boolean;
+    importMembers?: boolean;
+    approveRequest?: boolean;
+    rejectRequest?: boolean;
+  };
 
   addMember: (m: Partial<Member>) => Promise<string>; // returns doc id
   updateMember: (id: string, updates: Partial<Member>) => Promise<void>;
@@ -129,6 +138,14 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [sentMessages, setSentMessages] = useState<SentMessage[]>([]);
   const [approvalRequests, setApprovalRequests] = useState<MemberApprovalRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [operationLoading, setOperationLoading] = useState<{
+    addMember?: boolean;
+    updateMember?: boolean;
+    deleteMember?: boolean;
+    importMembers?: boolean;
+    approveRequest?: boolean;
+    rejectRequest?: boolean;
+  }>({});
 
   useEffect(() => {
     if (authLoading) return;
@@ -243,18 +260,29 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Member operations
   const addMember = async (memberPartial: Partial<Member>) => {
     if (!db) throw new Error("Database not initialized");
+    if (!user) throw new Error("User not authenticated");
 
-    console.log("🔵 Starting addMember...", { user: user?.email, authenticated: !!user, isAdmin });
+    setOperationLoading(prev => ({ ...prev, addMember: true }));
 
     try {
+      console.log("🔵 Starting addMember...", { user: user.email, authenticated: !!user, isAdmin });
+
+      // Validate required fields
+      if (!memberPartial.fullName?.trim()) {
+        throw new Error("Member name is required");
+      }
+      if (!memberPartial.phone?.trim()) {
+        throw new Error("Phone number is required");
+      }
+
       const memberCode = await generateMemberCode();
       console.log("✅ Member code generated:", memberCode);
 
       const payload: any = {
         memberCode,
-        fullName: formatProperCase(memberPartial.fullName || ""),
+        fullName: formatProperCase(memberPartial.fullName.trim()),
         gender: memberPartial.gender || null,
-        phone: memberPartial.phone || null,
+        phone: memberPartial.phone.trim(),
         birthday: memberPartial.birthday || null,
         organizations: Array.isArray(memberPartial.organizations)
           ? memberPartial.organizations.map(org => formatProperCase(org))
@@ -299,15 +327,20 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
       console.error("❌ addMember error:", e);
       console.error("Error code:", e.code);
       console.error("Error message:", e.message);
-      console.error("Full error:", JSON.stringify(e, null, 2));
 
-      // Provide helpful error messages
+      // Provide user-friendly error messages
+      let userMessage = "Failed to add member";
       if (e.code === "permission-denied") {
-        throw new Error("Permission denied: Check Firestore security rules. You may need to configure rules to allow writes.");
+        userMessage = "Permission denied: You don't have permission to add members.";
       } else if (e.code === "unauthenticated") {
-        throw new Error("Not authenticated: Please log in first.");
+        userMessage = "Authentication required: Please log in again.";
+      } else if (e.message) {
+        userMessage = e.message;
       }
-      throw e;
+
+      throw new Error(userMessage);
+    } finally {
+      setOperationLoading(prev => ({ ...prev, addMember: false }));
     }
   };
 
@@ -547,42 +580,80 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // CSV import
   const importMembersFromCSV = async (csvData: string) => {
-    if (!db) return { added: 0, failed: 0 };
-    const lines = csvData.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    let added = 0;
-    let failed = 0;
-    const start = lines[0]?.toLowerCase().includes("name") ? 1 : 0;
+    if (!db) throw new Error("Database not initialized");
+    if (!user) throw new Error("User not authenticated");
 
-    for (const line of lines.slice(start)) {
-      const [name, rawPhone, birthday = "", org = ""] = line.split(",").map((p) => p.trim());
-      const phone = validatePhoneNumber(rawPhone);
-      if (!name || !phone) {
-        failed++;
-        continue;
+    setOperationLoading(prev => ({ ...prev, importMembers: true }));
+
+    try {
+      const lines = csvData.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (lines.length === 0) {
+        throw new Error("CSV file appears to be empty");
       }
 
-      try {
-        const memberCode = await generateMemberCode();
-        await addDoc(collection(db, "members"), cleanForFirestore({
-          memberCode,
-          fullName: formatProperCase(name),
-          phone,
-          birthday,
-          organization: formatProperCase(org),
-          opt_in: true,
-          gender: "Male",
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        }));
-        added++;
-      } catch (e) {
-        console.error("CSV add error", e);
-        failed++;
+      let added = 0;
+      let failed = 0;
+      const start = lines[0]?.toLowerCase().includes("name") ? 1 : 0;
+
+      if (lines.length <= start) {
+        throw new Error("No data rows found in CSV");
       }
+
+      const batch = writeBatch(db);
+
+      for (const line of lines.slice(start)) {
+        const [name, rawPhone, birthday = "", org = ""] = line.split(",").map((p) => p.trim());
+        const phone = validatePhoneNumber(rawPhone);
+
+        if (!name || !phone) {
+          console.warn("Skipping invalid row:", { name, phone: rawPhone });
+          failed++;
+          continue;
+        }
+
+        try {
+          const memberCode = await generateMemberCode();
+          const memberData = cleanForFirestore({
+            memberCode,
+            fullName: formatProperCase(name),
+            phone,
+            birthday: birthday || null,
+            organizations: org ? [formatProperCase(org)] : [],
+            opt_in: true,
+            gender: "Male",
+            isActive: isAdmin, // Only admins can import active members directly
+            status: isAdmin ? 'active' : 'inactive',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          });
+
+          const docRef = doc(collection(db, "members"));
+          batch.set(docRef, memberData);
+          added++;
+        } catch (e) {
+          console.error("Error processing CSV row:", line, e);
+          failed++;
+        }
+      }
+
+      if (added === 0) {
+        throw new Error("No valid members found to import");
+      }
+
+      await batch.commit();
+      await logActivity("CSV Import", `Imported ${added} members, ${failed} failed`);
+
+      // Refresh local state
+      // Note: This will be handled by the real-time listeners
+
+      return { added, failed };
+    } catch (e: any) {
+      console.error("CSV import error:", e);
+      const errorMessage = e.message || "Failed to import CSV data";
+      throw new Error(errorMessage);
+    } finally {
+      setOperationLoading(prev => ({ ...prev, importMembers: false }));
     }
-
-    await logActivity("CSV Import", `Imported ${added}, failed ${failed}`);
-    return { added, failed };
   };
 
   // Excel import with batch processing
@@ -698,6 +769,8 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         activityLog,
         sentMessages,
         approvalRequests,
+        loading,
+        operationLoading,
         addMember,
         updateMember,
         deleteMember,

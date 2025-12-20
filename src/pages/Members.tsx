@@ -11,7 +11,7 @@ import { Member } from "../types";
 import * as XLSX from 'xlsx';
 
 export default function MembersPage() {
-  const { members, organizations, addMember, updateMember, deleteMember, importMembersFromCSV, importMembersFromExcel, requestMemberDelete } = useMembers();
+  const { members, organizations, addMember, updateMember, deleteMember, importMembersFromCSV, importMembersFromExcel, requestMemberDelete, operationLoading } = useMembers();
   const { addToast } = useToast();
   const { isAdmin } = useAuth();
 
@@ -96,7 +96,7 @@ export default function MembersPage() {
       }
 
       const firstRow = rows[0] as any;
-      const requiredColumns = ["Full Name", "Gender", "Date of Birth (DD/MM/YYYY)", "Organization"];
+      const requiredColumns = ["Full Name", "Gender", "Date of Birth (DD/MM/YYYY)", "Organizations"];
       const missingColumns = requiredColumns.filter(col => !(col in firstRow));
 
       if (missingColumns.length > 0) {
@@ -149,9 +149,9 @@ export default function MembersPage() {
         return {
           fullName: row["Full Name"]?.trim() || "",
           gender: row["Gender"]?.trim() || "",
-          phone: "", // Will be set later or left empty
+          phone: row["Phone Number"]?.trim() || "", // Include phone from template
           birthday,
-          organization: row["Organization"]?.trim() || "",
+          organization: row["Organizations"]?.trim() || "",
           opt_in: true,
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -160,56 +160,69 @@ export default function MembersPage() {
 
       // Use batch import
       const res = await importMembersFromExcel(formattedMembers);
-      addToast(`Imported ${res.added} members, ${res.failed} failed`, "success");
+      addToast(`Successfully imported ${res.added} members${res.failed > 0 ? `, ${res.failed} failed` : ''}`, "success");
       setShowPreview(false);
       setPreviewMembers([]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Save error:", error);
-      addToast("Failed to save members.", "error");
+      const errorMessage = error.message || "Failed to save members";
+      addToast(errorMessage, "error", {
+        title: "Import Failed",
+        description: "Please check your data and try again.",
+        persistent: true,
+      });
     }
   };
 
   const downloadTemplate = () => {
-    // Create sample data
-    const sampleData = [
-      {
-        "Full Name": "John Doe",
-        "Gender": "Male",
-        "Date of Birth (DD/MM/YYYY)": "15/03/1985",
-        "Organization": "Youth Ministry"
-      },
-      {
-        "Full Name": "Mary Smith",
-        "Gender": "Female",
-        "Date of Birth (DD/MM/YYYY)": "22/07/1990",
-        "Organization": "Choir"
-      },
-      {
-        "Full Name": "Peter Johnson",
-        "Gender": "Male",
-        "Date of Birth (DD/MM/YYYY)": "10/12/1982",
-        "Organization": "Elders Council"
-      }
-    ];
-
-    // Create workbook and worksheet
+    // Create workbook
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(sampleData);
 
-    // Set column widths
-    const colWidths = [
+    // Instructions sheet
+    const instructionsData = [
+      ["Church Konet Members Import Template"],
+      [""],
+      ["Instructions:"],
+      ["1. This template is for importing church members into the system."],
+      ["2. Fill in the 'Data' sheet with member information."],
+      ["3. Do not modify the column headers in the Data sheet."],
+      ["4. Use the format DD/MM/YYYY for dates (e.g., 15/03/1985)."],
+      ["5. Organizations should match existing ones or be new."],
+      ["6. Phone Number is optional but recommended."],
+      ["7. Save the file as .xlsx before importing."],
+      ["8. Import the filled template via the 'Import Member' button."]
+    ];
+    const instructionsWS = XLSX.utils.aoa_to_sheet(instructionsData);
+    instructionsWS['!cols'] = [{ wch: 50 }];
+
+    // Data sheet with headers only
+    const dataHeaders = [
+      ["Full Name", "Gender", "Date of Birth (DD/MM/YYYY)", "Phone Number", "Organizations"]
+    ];
+    const dataWS = XLSX.utils.aoa_to_sheet(dataHeaders);
+    dataWS['!cols'] = [
       { wch: 20 }, // Full Name
       { wch: 10 }, // Gender
       { wch: 25 }, // Date of Birth
-      { wch: 20 }  // Organization
+      { wch: 15 }, // Phone Number
+      { wch: 20 }  // Organizations
     ];
-    ws['!cols'] = colWidths;
 
-    // Add to workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Data");
+    // Add sheets to workbook
+    XLSX.utils.book_append_sheet(wb, instructionsWS, "Instructions");
+    XLSX.utils.book_append_sheet(wb, dataWS, "Data");
+
+    // Set properties to ensure editable
+    wb.Props = {
+      Title: "Church Konet Members Template",
+      Author: "Church Konet",
+    } as any;
+
+    // Set active sheet to Data
+    wb.Workbook = { Views: [{ activeTab: 1 }] } as any;
 
     // Generate and download file
-    XLSX.writeFile(wb, "member-import-template.xlsx");
+    XLSX.writeFile(wb, "Church_Konet_Members_Template.xlsx");
     addToast("Template downloaded successfully", "success");
   };
 
@@ -234,7 +247,7 @@ export default function MembersPage() {
 
     // Organization filter
     if (organizationFilter) {
-      filtered = filtered.filter(m => m.organization === organizationFilter);
+      filtered = filtered.filter(m => m.organizations?.includes(organizationFilter));
     }
 
     // DOB filters
@@ -416,7 +429,8 @@ export default function MembersPage() {
                     <th className="p-3 border border-gray-300 text-left">Full Name</th>
                     <th className="p-3 border border-gray-300 text-left">Gender</th>
                     <th className="p-3 border border-gray-300 text-left">Date of Birth</th>
-                    <th className="p-3 border border-gray-300 text-left">Organization</th>
+                    <th className="p-3 border border-gray-300 text-left">Phone Number</th>
+                    <th className="p-3 border border-gray-300 text-left">Organizations</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -425,7 +439,8 @@ export default function MembersPage() {
                       <td className="p-3 border border-gray-300">{member["Full Name"]}</td>
                       <td className="p-3 border border-gray-300">{member["Gender"]}</td>
                       <td className="p-3 border border-gray-300">{member["Date of Birth (DD/MM/YYYY)"]}</td>
-                      <td className="p-3 border border-gray-300">{member["Organization"]}</td>
+                      <td className="p-3 border border-gray-300">{member["Phone Number"]}</td>
+                      <td className="p-3 border border-gray-300">{member["Organizations"]}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -444,9 +459,17 @@ export default function MembersPage() {
               </button>
               <button
                 onClick={saveImportedMembers}
-                className="px-6 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800"
+                disabled={operationLoading.importMembers}
+                className="px-6 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Confirm & Save Members
+                {operationLoading.importMembers ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    Importing...
+                  </>
+                ) : (
+                  'Confirm & Save Members'
+                )}
               </button>
             </div>
           </div>
