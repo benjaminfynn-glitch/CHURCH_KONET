@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useSMS } from '../useSMS';
 
-vi.mock('../services/smsApi', () => ({
+vi.mock('../../services/smsApi', () => ({
   sendSMS: vi.fn(),
   sendPersonalisedSMS: vi.fn(),
   sendBroadcastSMS: vi.fn(),
@@ -25,7 +25,7 @@ import {
   scheduleSMS,
   getBalance,
   handleDeliveryPush,
-} from '../services/smsApi';
+} from '../../services/smsApi';
 
 describe('useSMS', () => {
   beforeEach(() => {
