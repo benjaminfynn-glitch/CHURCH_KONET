@@ -253,14 +253,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(500).json({ message: 'Internal Server Error in personalized processing', error: String(personalizedError) });
       }
     } else {
-      // Regular broadcast
+      // Regular broadcast - USING ORIGINAL WORKING FORMAT
       const payload = {
         text,
         type: 0, // BROADCAST SMS
         sender: finalSender,
         destinations: normalized, // Use normalized phone numbers
       };
-      
+
       // Debug: Log the exact request being sent
       console.log('=== BROADCAST DEBUG ===');
       console.log('URL:', 'https://api.smsonlinegh.com/v5/message/sms/send');
@@ -277,7 +277,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `key ${apiKey}`, // REQUIRED format
+          'Authorization': `key ${apiKey}`, // ORIGINAL WORKING FORMAT
         },
         body: JSON.stringify(payload),
       });
