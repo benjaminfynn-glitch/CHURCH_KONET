@@ -1,7 +1,11 @@
+console.log('=== BROADCAST.TS FILE LOADED ===');
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+
+console.log('=== BROADCAST.TS IMPORTS LOADED ===');
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('=== BROADCAST ENDPOINT HIT ===');
