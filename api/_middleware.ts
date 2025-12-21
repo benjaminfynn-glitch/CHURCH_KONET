@@ -35,8 +35,14 @@ if (getApps().length === 0) {
       throw new Error('Service account JSON missing private_key');
     }
 
+    // Handle private key newlines properly
+    const formattedServiceAccount = {
+      ...serviceAccount,
+      private_key: serviceAccount.private_key.replace(/\\n/g, '\n'),
+    };
+
     initializeApp({
-      credential: cert(serviceAccount),
+      credential: cert(formattedServiceAccount),
     });
 
     console.log('Firebase Admin initialized successfully');
