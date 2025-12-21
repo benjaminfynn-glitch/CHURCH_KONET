@@ -4,18 +4,27 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('=== BROADCAST ENDPOINT HIT ===');
+  console.log('Method:', req.method);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+
   // Allow CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
+    console.log('=== OPTIONS REQUEST HANDLED ===');
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
+    console.log('=== METHOD NOT ALLOWED ===');
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
+
+  console.log('=== PROCESSING POST REQUEST ===');
 
   try {
     const { text, destinations, sender } = req.body;
