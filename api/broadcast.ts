@@ -21,22 +21,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
 
-  // Apply rate limiting
-  try {
-    await new Promise((resolve, reject) => {
-      smsRateLimit(req as any, res as any, (result: any) => {
-        if (result instanceof Error) {
-          return reject(result);
-        }
-        resolve(result);
-      });
-    });
-  } catch (rateLimitError: any) {
-    return res.status(429).json({
-      error: rateLimitError.message || 'Too many requests',
-      retryAfter: rateLimitError.retryAfter || '15 minutes'
-    });
-  }
+  // TEMPORARILY DISABLE RATE LIMITING - express-rate-limit doesn't work properly on Vercel
+  // TODO: Implement Vercel-compatible rate limiting later
+  console.log('Rate limiting temporarily disabled for Vercel compatibility');
 
   // Authenticate user
   const authResult = await requireAuth(req, res);
