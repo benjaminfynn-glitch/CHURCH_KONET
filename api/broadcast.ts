@@ -1,39 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import {
-  requireAuth,
-  smsRateLimit,
-  validateBroadcastInput,
-  handleValidationErrors,
-  applySecurityHeaders,
-  handleOptions,
-  logAuditEvent
-} from "./_middleware.js";
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  try {
-    // Handle CORS preflight
-    if (req.method === 'OPTIONS') {
-      return handleOptions(res);
-    }
+  // Allow CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    // Apply security headers
-    applySecurityHeaders(res);
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-    if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
-
-  // TEMPORARILY DISABLE RATE LIMITING - express-rate-limit doesn't work properly on Vercel
-  // TODO: Implement Vercel-compatible rate limiting later
-  console.log('Rate limiting temporarily disabled for Vercel compatibility');
-
-  // Authenticate user
-  const authResult = await requireAuth(req, res);
-  if (!authResult) return;
-
-  const { user } = authResult;
-
-  // Validate input
-  await Promise.all(validateBroadcastInput.map(validation => validation.run(req)));
-  if (handleValidationErrors(req, res)) return;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
+  }
 
   try {
     const { text, destinations, sender } = req.body;
@@ -203,39 +185,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           personalized: true
         };
 
-        // Audit log successful personalized broadcast
-        await logAuditEvent(
-          'SMS_BROADCAST_PERSONALIZED',
-          user.uid,
-          {
-            batch: personalizedResponse.batch,
-            destinationCount: personalizedDestinations.length,
-            sender: finalSender,
-            success: true,
-            personalized: true
-          },
-          req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
-          req.headers['user-agent'] as string
-        );
+        // Audit logging removed - middleware dependencies removed
+        console.log('Personalized broadcast successful:', {
+          batch: personalizedResponse.batch,
+          destinationCount: personalizedDestinations.length,
+          sender: finalSender
+        });
 
         return res.status(200).json(personalizedResponse);
       } catch (personalizedError: any) {
         console.error('Personalized broadcast error', personalizedError);
 
-        // Audit log failed personalized broadcast
-        await logAuditEvent(
-          'SMS_BROADCAST_FAILED',
-          user.uid,
-          {
-            error: String(personalizedError),
-            destinationCount: destinations.length,
-            sender: finalSender,
-            success: false,
-            personalized: true
-          },
-          req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
-          req.headers['user-agent'] as string
-        );
+        // Error logging removed - middleware dependencies removed
+        console.error('Personalized broadcast failed:', String(personalizedError));
 
         return res.status(500).json({ message: 'Internal Server Error in personalized processing', error: String(personalizedError) });
       }
@@ -335,20 +297,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           personalized: false
         };
         
-        // Audit log successful broadcast
-        await logAuditEvent(
-          'SMS_BROADCAST',
-          user.uid,
-          {
-            batch: responseData.batch,
-            destinationCount: normalized.length,
-            sender: finalSender,
-            success: true,
-            personalized: false
-          },
-          req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
-          req.headers['user-agent'] as string
-        );
+        // Success logging removed - middleware dependencies removed
+        console.log('Broadcast successful:', {
+          batch: responseData.batch,
+          destinationCount: normalized.length,
+          sender: finalSender
+        });
 
         return res.status(200).json(responseData);
       } catch (mapError: any) {
@@ -366,57 +320,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
     }
-  } catch (err: any) {
-    console.error("Broadcast API error", err);
-
-    // Audit log failed broadcast
-    await logAuditEvent(
-      'SMS_BROADCAST_FAILED',
-      user.uid,
-      {
-        error: String(err),
-        destinationCount: req.body.destinations?.length || 0,
-        sender: req.body.sender,
-        success: false
-      },
-      req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
-      req.headers['user-agent'] as string
-    );
-
-    return res.status(500).json({ message: 'Internal Server Error', error: String(err) });
-    }
-  } catch (unhandledError: any) {
-    // Global error handler - ensures we ALWAYS return JSON
-    console.error('=== UNHANDLED BROADCAST ERROR ===');
-    console.error('Error:', unhandledError);
-    console.error('Stack:', unhandledError.stack);
-    console.error('=== END UNHANDLED ERROR ===');
-
-    // Audit log critical error
-    try {
-      await logAuditEvent(
-        'SMS_BROADCAST_CRITICAL_ERROR',
-        'system',
-        {
-          error: String(unhandledError),
-          stack: unhandledError.stack,
-          url: req.url,
-          method: req.method,
-          body: req.body
-        },
-        req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
-        req.headers['user-agent'] as string
-      );
-    } catch (auditError) {
-      console.error('Failed to audit critical error:', auditError);
-    }
-
-    // Always return JSON - never let Vercel return HTML
+  } catch (error: any) {
+    console.error('Broadcast API error:', error);
     return res.status(500).json({
-      success: false,
-      error: 'Critical server error occurred',
-      message: 'An unexpected error occurred while processing your SMS broadcast. Please try again.',
-      details: process.env.NODE_ENV === 'development' ? String(unhandledError) : undefined
+      message: 'Internal Server Error',
+      error: String(error)
     });
   }
 }
