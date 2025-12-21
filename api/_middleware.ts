@@ -8,12 +8,46 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin if not already initialized
 if (getApps().length === 0) {
-  // Parse the full service account JSON from environment variable
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT as string);
+  try {
+    console.log('=== FIREBASE ADMIN INITIALIZATION ===');
+    console.log('FIREBASE_SERVICE_ACCOUNT present:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
+    console.log('FIREBASE_SERVICE_ACCOUNT length:', process.env.FIREBASE_SERVICE_ACCOUNT?.length);
 
-  initializeApp({
-    credential: cert(serviceAccount),
-  });
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set');
+    }
+
+    // Parse the full service account JSON from environment variable
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+
+    console.log('Service account parsed successfully');
+    console.log('Project ID:', serviceAccount.project_id);
+    console.log('Client Email present:', !!serviceAccount.client_email);
+    console.log('Private Key present:', !!serviceAccount.private_key);
+
+    if (!serviceAccount.project_id) {
+      throw new Error('Service account JSON missing project_id');
+    }
+    if (!serviceAccount.client_email) {
+      throw new Error('Service account JSON missing client_email');
+    }
+    if (!serviceAccount.private_key) {
+      throw new Error('Service account JSON missing private_key');
+    }
+
+    initializeApp({
+      credential: cert(serviceAccount),
+    });
+
+    console.log('Firebase Admin initialized successfully');
+    console.log('=== END FIREBASE INITIALIZATION ===');
+  } catch (error: any) {
+    console.error('=== FIREBASE INITIALIZATION FAILED ===');
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('=== END FIREBASE INITIALIZATION FAILURE ===');
+    throw error; // Re-throw to crash the app with proper error
+  }
 }
 
 const db = getFirestore();
