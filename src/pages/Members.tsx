@@ -116,15 +116,15 @@ export default function MembersPage() {
         return;
       }
 
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets["Data"]);
+      const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets["Data"]);
 
       // Validate required columns
-      if (rows.length === 0) {
+      if (rawRows.length === 0) {
         addToast("Excel file is empty.", "error");
         return;
       }
 
-      const firstRow = rows[0] as any;
+      const firstRow = rawRows[0] as any;
       const requiredColumns = ["Full Name", "Gender", "Date of Birth (DD/MM/YYYY)", "Organizations"];
       const missingColumns = requiredColumns.filter(col => !(col in firstRow));
 
@@ -133,11 +133,30 @@ export default function MembersPage() {
         return;
       }
 
-      // Check for duplicates
+      // 🔹 STEP 1: Normalize dates IMMEDIATELY after parsing
+      const normalizedRows = rawRows.map((row: any, index: number) => {
+        const normalizedDate = normalizeDateOfBirth(row["Date of Birth (DD/MM/YYYY)"]);
+
+        // Debug logging to verify conversion
+        console.log(
+          `Row ${index + 2} DOB:`,
+          row["Date of Birth (DD/MM/YYYY)"],
+          '→',
+          normalizedDate
+        );
+
+        return {
+          ...row,
+          "Date of Birth (DD/MM/YYYY)": normalizedDate, // Replace with normalized date
+          _originalDate: row["Date of Birth (DD/MM/YYYY)"], // Keep original for debugging
+        };
+      });
+
+      // Check for duplicates using normalized data
       const seen = new Set<string>();
       const duplicates: number[] = [];
 
-      rows.forEach((row: any, index: number) => {
+      normalizedRows.forEach((row: any, index: number) => {
         const fullName = String(row["Full Name"] || "").trim();
         const dob = String(row["Date of Birth (DD/MM/YYYY)"] || "").trim();
         const key = `${fullName}-${dob}`;
@@ -152,7 +171,7 @@ export default function MembersPage() {
         return;
       }
 
-      setPreviewMembers(rows);
+      setPreviewMembers(normalizedRows);
       setShowPreview(true);
       setImportOpen(false);
     } catch (error) {
@@ -527,7 +546,7 @@ export default function MembersPage() {
                     <tr key={index} className="border border-gray-300">
                       <td className="p-3 border border-gray-300">{String(member["Full Name"] || "").trim()}</td>
                       <td className="p-3 border border-gray-300">{String(member["Gender"] || "").trim()}</td>
-                      <td className="p-3 border border-gray-300">{normalizeDateOfBirth(member["Date of Birth (DD/MM/YYYY)"])}</td>
+                      <td className="p-3 border border-gray-300">{member["Date of Birth (DD/MM/YYYY)"]}</td>
                       <td className="p-3 border border-gray-300">{String(member["Phone Number"] || "").trim()}</td>
                       <td className="p-3 border border-gray-300">{String(member["Organizations"] || "").trim()}</td>
                     </tr>
