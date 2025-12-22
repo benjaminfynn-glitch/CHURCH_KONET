@@ -228,19 +228,24 @@ export default function MembersPage() {
       }
 
       // Format members for import
-      const formattedMembers = previewMembers.map((row: any) => {
-        const dobString = normalizeDateOfBirth(row["Date of Birth (DD/MM/YYYY)"]);
+      const formattedMembers = previewMembers.map((row: any, index: number) => {
+        const dobString = row["Date of Birth (DD/MM/YYYY)"]; // Already normalized
         let birthday = null;
-        if (dobString) {
+        if (dobString && dobString.trim()) {
           try {
             const [day, month, year] = dobString.split("/");
             const date = new Date(Number(year), Number(month) - 1, Number(day));
-            if (!isNaN(date.getTime())) {
+            if (!isNaN(date.getTime()) && date.getFullYear() === Number(year)) {
               birthday = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+              console.log(`Member ${index + 1} birthday: ${dobString} → ${birthday}`);
+            } else {
+              console.warn(`Invalid date for member ${index + 1}: ${dobString}`);
             }
           } catch (e) {
-            console.warn("Invalid date format during import:", dobString);
+            console.warn(`Error parsing date for member ${index + 1}: ${dobString}`, e);
           }
+        } else {
+          console.log(`Member ${index + 1} has no birthday`);
         }
 
         return {
