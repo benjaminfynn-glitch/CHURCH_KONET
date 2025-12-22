@@ -110,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Check delivery statuses
+    // Check delivery statuses (log only, don't reject based on status)
     if (json.data && json.data.destinations && Array.isArray(json.data.destinations)) {
       const deliveryStatuses = json.data.destinations.map((item: any) => ({
         phone: item.to,
@@ -120,16 +120,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }));
       console.log('Broadcast Delivery Statuses:', JSON.stringify(deliveryStatuses, null, 2));
 
-      // Check if any messages were rejected
-      const rejectedMessages = deliveryStatuses.filter((status: any) => status.status !== 'sent' && status.status !== 'delivered');
-      if (rejectedMessages.length > 0) {
-        console.warn('Some messages were rejected:', rejectedMessages);
-        return res.status(502).json({
-          error: 'Some SMS messages were rejected by the provider',
-          rejectedMessages,
-          deliveryStatuses,
-          rawResponse: responseText,
-        });
+      // Log any non-success statuses but don't fail the request
+      // since SMSOnlineGH handshake was successful and SMS may still deliver
+      const nonSuccessStatuses = deliveryStatuses.filter((status: any) =>
+        status.status !== 'sent' &&
+        status.status !== 'delivered' &&
+        status.status !== 'queued' &&
+        status.status !== 'processing'
+      );
+      if (nonSuccessStatuses.length > 0) {
+        console.warn('Some messages have non-success statuses (but may still deliver):', nonSuccessStatuses);
       }
     }
 
