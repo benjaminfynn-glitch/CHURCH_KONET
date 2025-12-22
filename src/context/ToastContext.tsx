@@ -69,35 +69,41 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ addToast, removeToast }}>
       {children}
-      <div className="fixed top-6 right-6 z-[100] space-y-4 pointer-events-none max-w-sm">
-        {toasts.map(toast => (
-          <div
-            key={toast.id}
-            className={`
-              pointer-events-auto max-w-sm w-full bg-white border rounded-lg shadow-lg transform transition-all animate-in slide-in-from-right fade-in duration-300
-              ${toast.type === 'success' ? 'border-green-200' : toast.type === 'error' ? 'border-red-200' : toast.type === 'warning' ? 'border-yellow-200' : 'border-blue-200'}
-            `}
-          >
-            <div className="p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none p-4">
+        <div className="space-y-4 max-w-md w-full">
+          {toasts.map(toast => (
+            <div
+              key={toast.id}
+              className={`
+                pointer-events-auto w-full bg-white/95 backdrop-blur-lg border-0 rounded-2xl shadow-2xl transform transition-all animate-in zoom-in-95 fade-in duration-500 ring-1
+                ${toast.type === 'success' ? 'ring-green-200/50 shadow-green-100' : toast.type === 'error' ? 'ring-red-200/50 shadow-red-100' : toast.type === 'warning' ? 'ring-yellow-200/50 shadow-yellow-100' : 'ring-blue-200/50 shadow-blue-100'}
+              `}
+            >
+            <div className="p-6">
               <div className="flex items-start">
                 <div className="flex-shrink-0">
-                  {toast.type === 'success' && <span className="text-green-400">✅</span>}
-                  {toast.type === 'error' && <span className="text-red-400">⚠️</span>}
-                  {toast.type === 'warning' && <span className="text-yellow-400">⚠️</span>}
-                  {toast.type === 'info' && <span className="text-blue-400">ℹ️</span>}
+                  <div className={`
+                    w-10 h-10 rounded-full flex items-center justify-center
+                    ${toast.type === 'success' ? 'bg-green-100' : toast.type === 'error' ? 'bg-red-100' : toast.type === 'warning' ? 'bg-yellow-100' : 'bg-blue-100'}
+                  `}>
+                    {toast.type === 'success' && <span className="text-green-600 text-lg">✓</span>}
+                    {toast.type === 'error' && <span className="text-red-600 text-lg">✕</span>}
+                    {toast.type === 'warning' && <span className="text-yellow-600 text-lg">⚠</span>}
+                    {toast.type === 'info' && <span className="text-blue-600 text-lg">ℹ</span>}
+                  </div>
                 </div>
-                <div className="ml-3 w-0 flex-1">
+                <div className="ml-4 flex-1">
                   {toast.title && (
-                    <p className="text-sm font-medium text-gray-900">{toast.title}</p>
+                    <p className="text-base font-semibold text-gray-900 mb-1">{toast.title}</p>
                   )}
-                  <p className={`text-sm ${toast.title ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>
+                  <p className={`text-sm leading-relaxed ${toast.title ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>
                     {toast.message}
                   </p>
                   {toast.description && (
-                    <p className="mt-1 text-sm text-gray-500">{toast.description}</p>
+                    <p className="mt-2 text-sm text-gray-600 leading-relaxed">{toast.description}</p>
                   )}
                   {toast.actions && toast.actions.length > 0 && (
-                    <div className="mt-3 flex space-x-2">
+                    <div className="mt-4 flex space-x-3">
                       {toast.actions.map((action, index) => (
                         <button
                           key={index}
@@ -106,10 +112,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                             if (!toast.persistent) removeToast(toast.id);
                           }}
                           className={`
-                            inline-flex justify-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors
+                            inline-flex justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 active:scale-95
                             ${action.variant === 'secondary'
-                              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                              ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                              : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg'
                             }
                           `}
                         >
@@ -119,13 +125,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     </div>
                   )}
                 </div>
-                <div className="ml-4 flex-shrink-0 flex">
+                <div className="ml-4 flex-shrink-0">
                   <button
                     onClick={() => removeToast(toast.id)}
-                    className="inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
+                    className="inline-flex w-8 h-8 items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors duration-200"
                   >
                     <span className="sr-only">Close</span>
-                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                   </button>
@@ -134,6 +140,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             </div>
           </div>
         ))}
+        </div>
       </div>
     </ToastContext.Provider>
   );
