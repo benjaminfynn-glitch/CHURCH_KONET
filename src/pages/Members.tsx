@@ -109,8 +109,10 @@ export default function MembersPage() {
       const duplicates: number[] = [];
 
       rows.forEach((row: any, index: number) => {
-        const key = `${row["Full Name"]?.trim()}-${row["Date of Birth (DD/MM/YYYY)"]?.trim()}`;
-        if (seen.has(key)) {
+        const fullName = String(row["Full Name"] || "").trim();
+        const dob = String(row["Date of Birth (DD/MM/YYYY)"] || "").trim();
+        const key = `${fullName}-${dob}`;
+        if (key !== "-" && seen.has(key)) { // Only check duplicates if we have meaningful data
           duplicates.push(index + 1); // +1 for 1-based row numbers
         }
         seen.add(key);
@@ -132,26 +134,74 @@ export default function MembersPage() {
 
   const saveImportedMembers = async () => {
     try {
-      // Parse dates and format members
+      // Validate data before import
+      const validationErrors: string[] = [];
+
+      previewMembers.forEach((row: any, index: number) => {
+        const rowNum = index + 2; // +2 because Excel is 1-based and we skip header
+
+        // Check required fields
+        if (!String(row["Full Name"] || "").trim()) {
+          validationErrors.push(`Row ${rowNum}: Full Name is required`);
+        }
+        if (!String(row["Gender"] || "").trim()) {
+          validationErrors.push(`Row ${rowNum}: Gender is required`);
+        }
+        if (!String(row["Phone Number"] || "").trim()) {
+          validationErrors.push(`Row ${rowNum}: Phone Number is required`);
+        }
+        if (!String(row["Organizations"] || "").trim()) {
+          validationErrors.push(`Row ${rowNum}: Organizations is required`);
+        }
+
+        // Validate date format if provided
+        const dob = String(row["Date of Birth (DD/MM/YYYY)"] || "").trim();
+        if (dob) {
+          const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+          if (!dateRegex.test(dob)) {
+            validationErrors.push(`Row ${rowNum}: Date of Birth must be in DD/MM/YYYY format`);
+          } else {
+            const [day, month, year] = dob.split("/").map(Number);
+            const date = new Date(year, month - 1, day);
+            if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+              validationErrors.push(`Row ${rowNum}: Invalid date - ${dob}`);
+            }
+          }
+        }
+      });
+
+      if (validationErrors.length > 0) {
+        addToast(`Validation failed: ${validationErrors.length} errors found`, "error", {
+          title: "Import Validation Failed",
+          description: validationErrors.slice(0, 3).join("; ") + (validationErrors.length > 3 ? "..." : ""),
+          persistent: true,
+        });
+        return;
+      }
+
+      // Format members for import
       const formattedMembers = previewMembers.map((row: any) => {
-        const dobString = row["Date of Birth (DD/MM/YYYY)"];
-        let birthday = "";
+        const dobString = row["Date of Birth (DD/MM/YYYY)"]?.trim();
+        let birthday = null;
         if (dobString) {
           try {
             const [day, month, year] = dobString.split("/");
             const date = new Date(Number(year), Number(month) - 1, Number(day));
-            birthday = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            if (!isNaN(date.getTime())) {
+              birthday = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            }
           } catch (e) {
-            console.warn("Invalid date format:", dobString);
+            console.warn("Invalid date format during import:", dobString);
           }
         }
 
         return {
-          fullName: row["Full Name"]?.trim() || "",
-          gender: row["Gender"]?.trim() || "",
-          phone: row["Phone Number"]?.trim() || "", // Include phone from template
+          fullName: String(row["Full Name"] || "").trim() || "",
+          gender: String(row["Gender"] || "").trim() || "",
+          phone: String(row["Phone Number"] || "").trim() || "",
           birthday,
-          organization: row["Organizations"]?.trim() || "",
+          organizations: String(row["Organizations"] || "").trim() ? [String(row["Organizations"]).trim()] : [],
+          notes: String(row["Notes"] || "").trim() || null,
           opt_in: true,
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -160,7 +210,17 @@ export default function MembersPage() {
 
       // Use batch import
       const res = await importMembersFromExcel(formattedMembers);
-      addToast(`Successfully imported ${res.added} members${res.failed > 0 ? `, ${res.failed} failed` : ''}`, "success");
+
+      if (res.failed > 0) {
+        addToast(`Imported ${res.added} members, ${res.failed} failed validation`, "warning", {
+          title: "Partial Import Success",
+          description: "Some members were imported successfully, but others failed validation.",
+          persistent: true,
+        });
+      } else {
+        addToast(`Successfully imported ${res.added} members`, "success");
+      }
+
       setShowPreview(false);
       setPreviewMembers([]);
     } catch (error: any) {

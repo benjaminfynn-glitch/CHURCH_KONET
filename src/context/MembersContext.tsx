@@ -656,45 +656,141 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // Excel import with batch processing
+  // Excel import with comprehensive validation and batch processing
   const importMembersFromExcel = async (members: any[]) => {
-    if (!db) return { added: 0, failed: 0 };
+    if (!db) throw new Error("Database not initialized");
+    if (!user) throw new Error("User not authenticated");
 
-    const batch = writeBatch(db);
-    let added = 0;
-    let failed = 0;
-
-    for (const memberData of members) {
-      try {
-        const memberCode = await generateMemberCode();
-        const member = {
-          ...cleanForFirestore(memberData),
-          memberCode,
-          opt_in: true,
-          gender: memberData.gender || "Male",
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-
-        const docRef = doc(collection(db, "members"));
-        batch.set(docRef, member);
-        added++;
-      } catch (e) {
-        console.error("Excel member processing error", e);
-        failed++;
-      }
-    }
+    setOperationLoading(prev => ({ ...prev, importMembers: true }));
 
     try {
-      await batch.commit();
-      await logActivity("Excel Import", `Imported ${added} members, ${failed} failed`);
-    } catch (e) {
-      console.error("Batch commit error", e);
-      failed += added;
-      added = 0;
-    }
+      if (!Array.isArray(members) || members.length === 0) {
+        throw new Error("No member data provided for import");
+      }
 
-    return { added, failed };
+      let added = 0;
+      let failed = 0;
+      const batch = writeBatch(db);
+      const processedMembers: any[] = [];
+
+      for (const memberData of members) {
+        try {
+          // Validate required fields
+          const fullName = String(memberData.fullName || "").trim();
+          if (!fullName) {
+            console.warn("Skipping member: Missing or empty full name", memberData);
+            failed++;
+            continue;
+          }
+
+          // Validate and format phone number
+          const phone = String(memberData.phone || "").trim();
+          if (!phone) {
+            console.warn("Skipping member: Missing phone number", { fullName, memberData });
+            failed++;
+            continue;
+          }
+
+          const validatedPhone = validatePhoneNumber(phone);
+          if (!validatedPhone) {
+            console.warn("Skipping member: Invalid phone number format", { fullName, phone });
+            failed++;
+            continue;
+          }
+
+          // Validate date of birth if provided
+          let birthday = null;
+          if (memberData.birthday) {
+            try {
+              // Assume DD/MM/YYYY format from template
+              const dobString = memberData.birthday.toString().trim();
+              if (dobString) {
+                const [day, month, year] = dobString.split("/");
+                if (day && month && year) {
+                  const date = new Date(Number(year), Number(month) - 1, Number(day));
+                  if (!isNaN(date.getTime())) {
+                    birthday = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+                  } else {
+                    console.warn("Invalid date format, skipping birthday", { fullName, dobString });
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn("Error parsing birthday, skipping", { fullName, birthday: memberData.birthday });
+            }
+          }
+
+          // Process organizations
+          let organizations: string[] = [];
+          if (memberData.organizations) {
+            if (Array.isArray(memberData.organizations)) {
+              organizations = memberData.organizations
+                .filter((org: any) => org && typeof org === 'string')
+                .map((org: string) => formatProperCase(String(org).trim()));
+            } else if (typeof memberData.organizations === 'string') {
+              const orgStr = String(memberData.organizations).trim();
+              organizations = orgStr ? [formatProperCase(orgStr)] : [];
+            }
+          } else if (memberData.organization) {
+            // Fallback for old format
+            const orgStr = String(memberData.organization).trim();
+            organizations = orgStr ? [formatProperCase(orgStr)] : [];
+          }
+
+          // Generate member code
+          const memberCode = await generateMemberCode();
+
+          // Prepare member data
+          const memberPayload = cleanForFirestore({
+            memberCode,
+            fullName: formatProperCase(fullName),
+            gender: String(memberData.gender || "").trim() || "Male",
+            phone: validatedPhone,
+            birthday,
+            organizations,
+            notes: String(memberData.notes || "").trim() || null,
+            opt_in: typeof memberData.opt_in === "boolean" ? memberData.opt_in : true,
+            isActive: isAdmin, // Only admins can import active members directly
+            status: isAdmin ? 'active' : 'inactive',
+            statusMessage: isAdmin ? null : 'pending admin approval',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          });
+
+          const docRef = doc(collection(db, "members"));
+          batch.set(docRef, memberPayload);
+          processedMembers.push(memberPayload);
+          added++;
+
+        } catch (e) {
+          console.error("Error processing Excel member:", memberData, e);
+          failed++;
+        }
+      }
+
+      if (added === 0) {
+        throw new Error("No valid members found to import from Excel file");
+      }
+
+      // Check for duplicates within the import batch
+      const phoneNumbers = processedMembers.map(m => m.phone);
+      const uniquePhones = new Set(phoneNumbers);
+      if (uniquePhones.size < phoneNumbers.length) {
+        console.warn("Duplicate phone numbers found within import batch");
+        // Could add more sophisticated duplicate handling here
+      }
+
+      await batch.commit();
+      await logActivity("Excel Import", `Imported ${added} members from Excel, ${failed} failed`);
+
+      return { added, failed };
+    } catch (e: any) {
+      console.error("Excel import error:", e);
+      const errorMessage = e.message || "Failed to import Excel data";
+      throw new Error(errorMessage);
+    } finally {
+      setOperationLoading(prev => ({ ...prev, importMembers: false }));
+    }
   };
 
   // Organizations & templates & users

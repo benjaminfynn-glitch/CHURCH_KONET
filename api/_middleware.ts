@@ -6,8 +6,11 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// Initialize Firebase Admin if not already initialized
-if (getApps().length === 0) {
+// Check if we're in development mode (no Firebase Admin required)
+const isDevelopment = process.env.NODE_ENV !== 'production' && !process.env.FIREBASE_SERVICE_ACCOUNT;
+
+// Initialize Firebase Admin if not already initialized and not in development mode
+if (getApps().length === 0 && !isDevelopment) {
   try {
     console.log('=== FIREBASE ADMIN INITIALIZATION ===');
     console.log('FIREBASE_SERVICE_ACCOUNT present:', !!process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -54,10 +57,21 @@ if (getApps().length === 0) {
     console.error('=== END FIREBASE INITIALIZATION FAILURE ===');
     throw error; // Re-throw to crash the app with proper error
   }
+} else if (isDevelopment) {
+  console.log('=== DEVELOPMENT MODE ===');
+  console.log('Firebase Admin initialization skipped for local development');
+  console.log('Using mock authentication for testing');
+  console.log('=== END DEVELOPMENT MODE ===');
 }
 
-const db = getFirestore();
-const auth = getAuth();
+// Initialize services conditionally
+let db: any = null;
+let auth: any = null;
+
+if (!isDevelopment) {
+  db = getFirestore();
+  auth = getAuth();
+}
 
 // Rate limiting configurations
 export const smsRateLimit = rateLimit({
@@ -113,6 +127,19 @@ export const corsHeaders = {
 
 // Authentication middleware
 export async function requireAuth(req: VercelRequest, res: VercelResponse): Promise<{ user: any } | null> {
+  // In development mode, allow testing with mock authentication
+  if (isDevelopment) {
+    console.log('🔧 DEVELOPMENT MODE: Using mock authentication');
+    return {
+      user: {
+        uid: 'dev-user-123',
+        email: 'dev@church.org',
+        role: 'admin', // Give admin role for testing
+        fullName: 'Development User',
+      }
+    };
+  }
+
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -226,6 +253,19 @@ export async function logAuditEvent(
   ipAddress?: string,
   userAgent?: string
 ) {
+  // In development mode, just log to console
+  if (isDevelopment) {
+    console.log('📊 AUDIT LOG (DEV MODE):', {
+      operation,
+      userId,
+      details,
+      ipAddress: ipAddress || 'unknown',
+      userAgent: userAgent || 'unknown',
+      timestamp: new Date().toISOString(),
+    });
+    return;
+  }
+
   try {
     await db.collection('audit_logs').add({
       operation,

@@ -15,16 +15,13 @@ router.post('/', async (req: any, res: any) => {
     } as any;
 
     const vercelRes = {
-      status: (code: number) => {
-        return {
-          json: (data: any) => {
-            res.status(code).json(data);
-          },
-          end: () => {
-            res.end();
-          },
-        };
-      },
+      status: (code: number) => ({
+        json: (data: any) => res.status(code).json(data),
+        end: () => res.end()
+      }),
+      json: (data: any) => res.json(data),
+      setHeader: (name: string, value: string) => res.header(name, value),
+      end: () => res.end()
     } as any;
 
     // Call the original Vercel handler
