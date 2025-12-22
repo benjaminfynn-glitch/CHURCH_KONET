@@ -172,6 +172,14 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setMembers(
         snap.docs.map((d) => {
           const data = d.data() as any;
+
+          // Debug birthday field
+          if (data.birthday) {
+            console.log(`Member ${d.id} birthday from Firestore:`, data.birthday, typeof data.birthday);
+          } else {
+            console.log(`Member ${d.id} has no birthday in Firestore`);
+          }
+
           return {
             id: d.id,
             memberCode: data.memberCode || null,
