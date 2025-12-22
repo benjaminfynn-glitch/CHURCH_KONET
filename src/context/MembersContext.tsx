@@ -673,6 +673,10 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const batch = writeBatch(db);
       const processedMembers: any[] = [];
 
+      // Get the latest member code once, then increment sequentially
+      const baseMemberCode = await generateMemberCode();
+      let nextCodeNumber = parseInt(baseMemberCode.replace('ANC-BMCE-', ''), 10);
+
       for (const memberData of members) {
         try {
           // Validate required fields
@@ -737,8 +741,9 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
             organizations = orgStr ? [formatProperCase(orgStr)] : [];
           }
 
-          // Generate member code
-          const memberCode = await generateMemberCode();
+          // Generate sequential member code
+          const memberCode = `ANC-BMCE-${String(nextCodeNumber).padStart(4, "0")}`;
+          nextCodeNumber++;
 
           // Prepare member data
           const memberPayload = cleanForFirestore({

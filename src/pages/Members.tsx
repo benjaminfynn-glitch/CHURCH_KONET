@@ -5,6 +5,7 @@ import MembersTable from "../components/MembersTable";
 import MemberFormModal from "../components/MemberFormModal";
 import DeleteReasonModal from "../components/DeleteReasonModal";
 import PrimaryButton from "../components/PrimaryButton";
+import ValidationErrorModal from "../components/ValidationErrorModal";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
 import { Member } from "../types";
@@ -22,6 +23,8 @@ export default function MembersPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showValidationModal, setShowValidationModal] = useState(false);
 
   // Filters and search
   const [searchQuery, setSearchQuery] = useState('');
@@ -182,7 +185,7 @@ export default function MembersPage() {
 
   const saveImportedMembers = async () => {
     try {
-      // Validate data before import
+      // Validate data before import - collect errors per row
       const validationErrors: string[] = [];
 
       previewMembers.forEach((row: any, index: number) => {
@@ -190,40 +193,37 @@ export default function MembersPage() {
 
         // Check required fields
         if (!String(row["Full Name"] || "").trim()) {
-          validationErrors.push(`Row ${rowNum}: Full Name is required`);
+          validationErrors.push(`Row ${rowNum} — Full Name is required`);
         }
         if (!String(row["Gender"] || "").trim()) {
-          validationErrors.push(`Row ${rowNum}: Gender is required`);
+          validationErrors.push(`Row ${rowNum} — Gender is required`);
         }
         if (!String(row["Phone Number"] || "").trim()) {
-          validationErrors.push(`Row ${rowNum}: Phone Number is required`);
+          validationErrors.push(`Row ${rowNum} — Phone Number is required`);
         }
         if (!String(row["Organizations"] || "").trim()) {
-          validationErrors.push(`Row ${rowNum}: Organizations is required`);
+          validationErrors.push(`Row ${rowNum} — Organizations is required`);
         }
 
-        // Validate date format if provided
+        // Validate date format if provided - strict DD/MM/YYYY validation
         const dob = String(row["Date of Birth (DD/MM/YYYY)"] || "").trim();
         if (dob) {
           const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
           if (!dateRegex.test(dob)) {
-            validationErrors.push(`Row ${rowNum}: Date of Birth must be in DD/MM/YYYY format`);
+            validationErrors.push(`Row ${rowNum} — Date of Birth must be in DD/MM/YYYY format (got: ${dob})`);
           } else {
             const [day, month, year] = dob.split("/").map(Number);
             const date = new Date(year, month - 1, day);
             if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-              validationErrors.push(`Row ${rowNum}: Invalid date - ${dob}`);
+              validationErrors.push(`Row ${rowNum} — Invalid date: ${dob}`);
             }
           }
         }
       });
 
       if (validationErrors.length > 0) {
-        addToast(`Validation failed: ${validationErrors.length} errors found`, "error", {
-          title: "Import Validation Failed",
-          description: validationErrors.slice(0, 3).join("; ") + (validationErrors.length > 3 ? "..." : ""),
-          persistent: true,
-        });
+        setValidationErrors(validationErrors);
+        setShowValidationModal(true);
         return;
       }
 
