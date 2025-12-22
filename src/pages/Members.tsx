@@ -31,6 +31,35 @@ export default function MembersPage() {
   const [dobMonthFilter, setDobMonthFilter] = useState('');
   const [dobYearFilter, setDobYearFilter] = useState('');
 
+  // Utility functions for Excel import
+  const excelDateToJSDate = (serial: number): Date => {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30)); // Excel epoch: 1899-12-30
+    return new Date(excelEpoch.getTime() + serial * 86400000); // 86400000 = 24 * 60 * 60 * 1000 (ms per day)
+  };
+
+  const formatDateDDMMYYYY = (date: Date): string => {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const normalizeDateOfBirth = (value: any): string => {
+    // Excel numeric date serial number
+    if (typeof value === 'number' && !isNaN(value) && value > 0) {
+      const date = excelDateToJSDate(value);
+      return formatDateDDMMYYYY(date);
+    }
+
+    // Already a string (manual entry)
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+
+    // Empty or invalid
+    return '';
+  };
+
   const openAdd = () => {
     setEditing(null);
     setModalOpen(true);
@@ -181,7 +210,7 @@ export default function MembersPage() {
 
       // Format members for import
       const formattedMembers = previewMembers.map((row: any) => {
-        const dobString = row["Date of Birth (DD/MM/YYYY)"]?.trim();
+        const dobString = normalizeDateOfBirth(row["Date of Birth (DD/MM/YYYY)"]);
         let birthday = null;
         if (dobString) {
           try {
@@ -496,11 +525,11 @@ export default function MembersPage() {
                 <tbody>
                   {previewMembers.map((member: any, index: number) => (
                     <tr key={index} className="border border-gray-300">
-                      <td className="p-3 border border-gray-300">{member["Full Name"]}</td>
-                      <td className="p-3 border border-gray-300">{member["Gender"]}</td>
-                      <td className="p-3 border border-gray-300">{member["Date of Birth (DD/MM/YYYY)"]}</td>
-                      <td className="p-3 border border-gray-300">{member["Phone Number"]}</td>
-                      <td className="p-3 border border-gray-300">{member["Organizations"]}</td>
+                      <td className="p-3 border border-gray-300">{String(member["Full Name"] || "").trim()}</td>
+                      <td className="p-3 border border-gray-300">{String(member["Gender"] || "").trim()}</td>
+                      <td className="p-3 border border-gray-300">{normalizeDateOfBirth(member["Date of Birth (DD/MM/YYYY)"])}</td>
+                      <td className="p-3 border border-gray-300">{String(member["Phone Number"] || "").trim()}</td>
+                      <td className="p-3 border border-gray-300">{String(member["Organizations"] || "").trim()}</td>
                     </tr>
                   ))}
                 </tbody>
