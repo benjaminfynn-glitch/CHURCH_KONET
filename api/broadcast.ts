@@ -1,56 +1,19 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import {
-  requireAuth,
-  smsRateLimit,
-  validateSMSInput,
-  handleValidationErrors,
-  applySecurityHeaders,
-  handleOptions,
-  logAuditEvent
-} from './_middleware.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Handle CORS preflight
+  // Allow CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method === 'OPTIONS') {
-    return handleOptions(res);
+    return res.status(200).end();
   }
 
-  // Apply security headers
-  applySecurityHeaders(res);
-
-  // Allow ONLY POST
   if (req.method !== 'POST') {
-    return res.status(405).json({
-      error: 'Method Not Allowed. Use POST.',
-    });
+    return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  // Apply rate limiting
-  try {
-    await new Promise((resolve, reject) => {
-      smsRateLimit(req as any, res as any, (result: any) => {
-        if (result instanceof Error) {
-          return reject(result);
-        }
-        resolve(result);
-      });
-    });
-  } catch (rateLimitError: any) {
-    return res.status(429).json({
-      error: rateLimitError.message || 'Too many requests',
-      retryAfter: rateLimitError.retryAfter || '15 minutes'
-    });
-  }
-
-  // Authenticate user
-  const authResult = await requireAuth(req, res);
-  if (!authResult) return;
-
-  const { user } = authResult;
-
-  // Validate input
-  await Promise.all(validateSMSInput.map(validation => validation.run(req)));
-  if (handleValidationErrors(req, res)) return;
 
   try {
     const { text, destinations, sender, type = 0 } = req.body;
@@ -185,19 +148,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })) : []
     };
 
-    // Audit log successful broadcast
-    await logAuditEvent(
-      'SMS_BROADCAST',
-      user.uid,
-      {
-        batch: json.data?.batch,
-        destinationCount: normalizedDestinations.length,
-        sender: sender || 'BETHELKONET',
-        success: true
-      },
-      req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
-      req.headers['user-agent'] as string
-    );
 
     return res.status(200).json(responseData);
 
@@ -205,19 +155,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('Broadcast API Error:', error?.response?.data || error.message);
     console.error('Error stack:', error.stack);
 
-    // Audit log failed broadcast
-    await logAuditEvent(
-      'SMS_BROADCAST_FAILED',
-      user.uid || 'unknown',
-      {
-        error: error.message,
-        destinationCount: req.body.destinations?.length || 0,
-        sender: req.body.sender || 'BETHELKONET',
-        success: false
-      },
-      req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress,
-      req.headers['user-agent'] as string
-    );
 
     return res.status(500).json({
       success: false,
