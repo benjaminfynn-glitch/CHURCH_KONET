@@ -158,7 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Broadcast Delivery Statuses:', JSON.stringify(deliveryStatuses, null, 2));
 
       // Check if any messages were rejected
-      const rejectedMessages = deliveryStatuses.filter(status => status.status !== 'sent' && status.status !== 'delivered');
+      const rejectedMessages = deliveryStatuses.filter((status: any) => status.status !== 'sent' && status.status !== 'delivered');
       if (rejectedMessages.length > 0) {
         console.warn('Some messages were rejected:', rejectedMessages);
         return res.status(502).json({
