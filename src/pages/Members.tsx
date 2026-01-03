@@ -271,9 +271,16 @@ export default function MembersPage() {
       // Use batch import
       const res = await importMembersFromExcel(formattedMembers);
 
-      if (res.failed > 0) {
+      if (res.failed > 0 || (res.duplicates && res.duplicates.length > 0)) {
         setStatusMessage("Import Status");
-        setStatusErrors([`Imported ${res.added} members, ${res.failed} failed validation`]);
+        const errors = [];
+        if (res.duplicates && res.duplicates.length > 0) {
+          errors.push(...res.duplicates);
+        }
+        if (res.failed > res.duplicates?.length || 0) {
+          errors.push(`Imported ${res.added} members, ${res.failed - (res.duplicates?.length || 0)} failed validation`);
+        }
+        setStatusErrors(errors);
       } else {
         setStatusMessage(`Successfully imported ${res.added} members`);
         setStatusErrors([]);

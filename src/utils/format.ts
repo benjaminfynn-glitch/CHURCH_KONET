@@ -5,8 +5,13 @@ export function normalizeName(raw: string) {
     .toString()
     .trim()
     .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(word => word[0].toUpperCase() + word.slice(1))
-    .join(' ');
+    .replace(/\s+/g, ' ');
+}
+
+export function normalizeDOB(dob: string) {
+  // expects DD/MM/YYYY
+  if (!dob) return '';
+  const [dd, mm, yyyy] = dob.split('/');
+  if (!dd || !mm || !yyyy) return '';
+  return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`; // canonical format
 }

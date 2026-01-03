@@ -11,6 +11,7 @@ import {
 import { db } from "../firebase";
 import { useAuth } from "./AuthContext";
 import { validatePhoneNumber } from "../services/smsUtils";
+import { normalizeName, normalizeDOB } from "../utils/format";
 import {
   collection,
   addDoc,
@@ -26,6 +27,7 @@ import {
   getDoc,
   getDocs,
   writeBatch,
+  where,
 } from "firebase/firestore";
 
 /**
@@ -103,7 +105,7 @@ interface MembersContextType {
   deleteMember: (id: string, reason?: string) => Promise<void>;
   getMember: (id: string) => Member | undefined;
   importMembersFromCSV: (csvData: string) => Promise<{ added: number; failed: number }>;
-  importMembersFromExcel: (members: any[]) => Promise<{ added: number; failed: number }>;
+  importMembersFromExcel: (members: any[]) => Promise<{ added: number; failed: number; duplicates: string[] }>;
 
   // Approval functions
   requestMemberAdd: (memberData: Partial<Member>) => Promise<string>;
@@ -190,6 +192,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
             organizations: Array.isArray(data.organizations) ? data.organizations : (data.organization ? [data.organization] : []),
             notes: data.notes || "",
             opt_in: typeof data.opt_in === 'boolean' ? data.opt_in : data.opt_in === 'true' || data.opt_in === true,
+            memberKey: data.memberKey || null,
             isActive: typeof data.isActive === 'boolean' ? data.isActive : data.isActive === 'true' || data.isActive === true,
             status: data.status || "inactive",
             statusMessage: data.statusMessage || null,
@@ -282,6 +285,17 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!memberPartial.phone?.trim()) {
         throw new Error("Phone number is required");
       }
+      if (!memberPartial.birthday?.trim()) {
+        throw new Error("Date of birth is required");
+      }
+
+      // Check for duplicates
+      const memberKey = `${normalizeName(memberPartial.fullName)}_${normalizeDOB(memberPartial.birthday)}`;
+      const q = query(collection(db, 'members'), where('memberKey', '==', memberKey));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        throw new Error('This member is already added.');
+      }
 
       const memberCode = await generateMemberCode();
       console.log("✅ Member code generated:", memberCode);
@@ -297,6 +311,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
           : ((memberPartial as any).organization ? [formatProperCase((memberPartial as any).organization)] : []),
         notes: memberPartial.notes || null,
         opt_in: typeof memberPartial.opt_in === "boolean" ? memberPartial.opt_in : true,
+        memberKey,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -676,10 +691,15 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error("No member data provided for import");
       }
 
+      // Fetch existing keys once
+      const snapshot = await getDocs(collection(db, 'members'));
+      const existingKeys = new Set(snapshot.docs.map(d => d.data().memberKey).filter(Boolean));
+
       let added = 0;
       let failed = 0;
       const batch = writeBatch(db);
       const processedMembers: any[] = [];
+      const duplicates: string[] = [];
 
       // Get the latest member code once, then increment sequentially
       const baseMemberCode = await generateMemberCode();
@@ -694,6 +714,23 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
             failed++;
             continue;
           }
+
+          // Validate date of birth
+          const dob = String(memberData.birthday || "").trim();
+          if (!dob) {
+            console.warn("Skipping member: Missing date of birth", { fullName, memberData });
+            failed++;
+            continue;
+          }
+
+          // Check for duplicates
+          const memberKey = `${normalizeName(fullName)}_${normalizeDOB(dob)}`;
+          if (existingKeys.has(memberKey)) {
+            duplicates.push(`Row ${members.indexOf(memberData) + 2}: ${fullName} (${dob}) already exists`);
+            failed++;
+            continue;
+          }
+          existingKeys.add(memberKey);
 
           // Validate and format phone number
           const phone = String(memberData.phone || "").trim();
@@ -763,6 +800,7 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
             organizations,
             notes: String(memberData.notes || "").trim() || null,
             opt_in: typeof memberData.opt_in === "boolean" ? memberData.opt_in : true,
+            memberKey,
             isActive: isAdmin, // Only admins can import active members directly
             status: isAdmin ? 'active' : 'inactive',
             statusMessage: isAdmin ? null : 'pending admin approval',
@@ -785,18 +823,10 @@ export const MembersProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error("No valid members found to import from Excel file");
       }
 
-      // Check for duplicates within the import batch
-      const phoneNumbers = processedMembers.map(m => m.phone);
-      const uniquePhones = new Set(phoneNumbers);
-      if (uniquePhones.size < phoneNumbers.length) {
-        console.warn("Duplicate phone numbers found within import batch");
-        // Could add more sophisticated duplicate handling here
-      }
-
       await batch.commit();
       await logActivity("Excel Import", `Imported ${added} members from Excel, ${failed} failed`);
 
-      return { added, failed };
+      return { added, failed, duplicates };
     } catch (e: any) {
       console.error("Excel import error:", e);
       const errorMessage = e.message || "Failed to import Excel data";

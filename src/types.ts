@@ -11,6 +11,7 @@ export interface Member {
   opt_in?: boolean;
   createdAt?: number | null;
   updatedAt?: number | null;
+  memberKey?: string; // composite key for duplicate prevention
   // Approval fields
   isActive?: boolean;
   status?: 'inactive' | 'active' | 'pending' | 'approved' | 'rejected';
