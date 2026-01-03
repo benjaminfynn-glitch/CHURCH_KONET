@@ -5,7 +5,6 @@ import MembersTable from "../components/MembersTable";
 import MemberFormModal from "../components/MemberFormModal";
 import DeleteReasonModal from "../components/DeleteReasonModal";
 import PrimaryButton from "../components/PrimaryButton";
-import ValidationErrorModal from "../components/ValidationErrorModal";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
 import { Member } from "../types";
@@ -23,8 +22,12 @@ export default function MembersPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusErrors, setStatusErrors] = useState<string[]>([]);
+
+  // Pagination
+  const ITEMS_PER_PAGE = 30;
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Filters and search
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,6 +112,10 @@ export default function MembersPage() {
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Clear previous status
+    setStatusMessage(null);
+    setStatusErrors([]);
 
     try {
       const buffer = await file.arrayBuffer();
@@ -222,8 +229,8 @@ export default function MembersPage() {
       });
 
       if (validationErrors.length > 0) {
-        setValidationErrors(validationErrors);
-        setShowValidationModal(true);
+        setStatusMessage("Import Status");
+        setStatusErrors(validationErrors);
         return;
       }
 
@@ -265,13 +272,11 @@ export default function MembersPage() {
       const res = await importMembersFromExcel(formattedMembers);
 
       if (res.failed > 0) {
-        addToast(`Imported ${res.added} members, ${res.failed} failed validation`, "warning", {
-          title: "Partial Import Success",
-          description: "Some members were imported successfully, but others failed validation.",
-          persistent: true,
-        });
+        setStatusMessage("Import Status");
+        setStatusErrors([`Imported ${res.added} members, ${res.failed} failed validation`]);
       } else {
-        addToast(`Successfully imported ${res.added} members`, "success");
+        setStatusMessage(`Successfully imported ${res.added} members`);
+        setStatusErrors([]);
       }
 
       setShowPreview(false);
@@ -378,6 +383,12 @@ export default function MembersPage() {
     return filtered.sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
   }, [members, searchQuery, genderFilter, organizationFilter, dobDayFilter, dobMonthFilter, dobYearFilter]);
 
+  const totalPages = Math.ceil(visible.length / ITEMS_PER_PAGE);
+  const paginatedMembers = visible.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Header Card */}
@@ -419,6 +430,20 @@ export default function MembersPage() {
           </div>
         </div>
       </div>
+
+      {/* Status Message */}
+      {statusMessage && (
+        <div className="bg-blue-600 text-white px-4 py-3 rounded-lg shadow-md max-w-md">
+          <p className="font-medium">{statusMessage}</p>
+          {statusErrors.length > 0 && (
+            <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+              {statusErrors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Filters and Search */}
       <div className="bg-white rounded-xl shadow-md p-6 mb-6">
@@ -520,7 +545,32 @@ export default function MembersPage() {
 
       {/* Members Table Card */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <MembersTable members={visible} onEdit={openEdit} onDelete={onDelete} />
+        <MembersTable members={paginatedMembers} onEdit={openEdit} onDelete={onDelete} />
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center mt-6">
+        <span className="text-sm text-gray-600">
+          Page {currentPage} of {totalPages}
+        </span>
+
+        <div className="flex gap-2">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => p - 1)}
+            className="px-3 py-1 rounded border disabled:opacity-50"
+          >
+            Previous
+          </button>
+
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(p => p + 1)}
+            className="px-3 py-1 rounded border disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       <MemberFormModal
