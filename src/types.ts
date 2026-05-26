@@ -137,3 +137,104 @@ export interface SentMessage {
   type: "birthday" | "general";
   status: "Sent" | "Delivered" | "Failed";
 }
+
+export type ServiceType = "FIRST_DIVINE_SERVICE" | "SECOND_DIVINE_SERVICE" | "JOINT_DIVINE_SERVICE" | "WEDNESDAY_PRAYER_MEETING";
+
+export type ServiceStatus = "upcoming" | "completed" | "cancelled"
+
+export interface BibleReader {
+  scriptureReference: string;
+  name: string;
+  contact: string;
+}
+
+export interface ServicePlan {
+  id?: string;
+  serviceDate: string;
+  serviceType: ServiceType;
+  theme: string;
+  preacherId?: string;
+  preacherName?: string;
+  preacherContact?: string;
+  bibleReaders: BibleReader[];
+  standbyPreacherId?: string;
+  standbyPreacherName?: string;
+  standbyPreacherContact?: string;
+  liturgistId?: string;
+  liturgistName?: string;
+  liturgistContact?: string;
+  notes: string;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+  status: ServiceStatus;
+  mcId?: string;
+  mcName?: string;
+  mcContact?: string;
+}
+
+export interface PlannerFilter {
+  date?: string;
+  month?: string;
+  serviceType?: ServiceType;
+  preacher?: string;
+  searchQuery?: string;
+}
+
+export type StaffRole = "Preacher" | "Liturgist" | "Bible Reader" | "MC";
+
+export type StaffClassification = "Internal" | "External";
+
+export interface StaffMember {
+  id?: string;
+  fullName: string;
+  roles: StaffRole[];
+  phone: string;
+  gender: "Male" | "Female" | "Other";
+  status: "active" | "inactive";
+  notes?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  assignmentCount?: number;
+  classification: StaffClassification;
+  society?: string;
+}
+
+export interface ExternalPreacher {
+  id?: string;
+  fullName: string;
+  phone: string;
+  society: string;
+  denomination?: string;
+  classification: "External";
+  status: "active" | "inactive";
+  availability?: string[];
+  notes?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  appointmentHistory?: ExternalPreacherAppointment[];
+  isFavorite: boolean;
+}
+
+export interface ExternalPreacherAppointment {
+  id?: string;
+  externalPreacherId: string;
+  serviceDate: string;
+  serviceType: ServiceType;
+  theme: string;
+  status: "Scheduled" | "Confirmed" | "Completed" | "Cancelled";
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PreacherAssignment {
+  id?: string;
+  internalPreacherId?: string;
+  externalPreacherId?: string;
+  serviceDate: string;
+  serviceType: ServiceType;
+  theme: string;
+  status: "Scheduled" | "Confirmed" | "Completed" | "Cancelled";
+  createdAt: number;
+  updatedAt: number;
+}

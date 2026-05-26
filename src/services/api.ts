@@ -1,31 +1,63 @@
 import { SMSRequest, SMSResponse, BalanceResponse, SMSDestinationPersonalized } from '../types';
 
-// API base URL - relative for production, localhost for development
 const API_BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api');
 
-export const sendBroadcast = async (payload: SMSRequest): Promise<SMSResponse> => {
+export interface ApiError extends Error {
+  status?: number;
+  details?: string;
+}
+
+async function getResponseBody(response: Response): Promise<{ json: any; text: string }> {
+  const text = await response.text();
+  let json;
   try {
-    const response = await fetch(`${API_BASE}/broadcast`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+    json = JSON.parse(text);
+  } catch {
+    json = null;
+  }
+  return { json, text };
+}
 
-    const result: SMSResponse = await response.json();
+export async function checkHealth(): Promise<{ status: string; smsService: string }> {
+  const response = await fetch(`${API_BASE}/health`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
 
-    if (!response.ok || !result.success) {
-      const errorMessage = result.error || 'Broadcast request failed';
-      throw new Error(errorMessage);
-    }
+  if (!response.ok) {
+    throw new Error('Server health check failed');
+  }
 
-    return result;
-  } catch (error) {
-    console.error("Broadcast failed", error);
+  return response.json();
+}
+
+export async function sendBroadcast(payload: SMSRequest): Promise<SMSResponse> {
+  const response = await fetch(`${API_BASE}/broadcast`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const { json, text } = await getResponseBody(response);
+
+  if (!response.ok) {
+    const errorMessage = (json && (json.error || json.message)) || 'Failed to send broadcast';
+    const error = new Error(errorMessage) as ApiError;
+    error.status = response.status;
+    error.details = json?.details || json?.rawResponse || text;
     throw error;
   }
-};
+
+  if (!json?.success) {
+    const errorMessage = json?.error || 'Broadcast request failed';
+    const error = new Error(errorMessage) as ApiError;
+    error.status = response.status;
+    error.details = json?.details || text;
+    throw error;
+  }
+
+  return json;
+}
 
 export const sendPersonalizedSMS = async (payload: { text: string; sender: string; destinations: SMSDestinationPersonalized[] }): Promise<any> => {
   try {

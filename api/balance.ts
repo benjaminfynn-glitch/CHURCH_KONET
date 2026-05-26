@@ -8,7 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const apiKey = process.env.SMSONLINEGH_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: 'Missing SMSONLINE_API_KEY in environment' });
+      return res.status(500).json({ error: 'Missing SMSONLINEGH_API_KEY in environment' });
     }
 
     const response = await fetch('https://api.smsonlinegh.com/v5/account/balance', {
