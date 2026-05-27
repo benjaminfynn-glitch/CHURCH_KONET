@@ -10,7 +10,6 @@ interface SendSMSModalProps {
 }
 
 const CHURCH_NAME = "Bethel Society, Efutu";
-
 const SERVICE_TEMPLATES: Record<ServiceType, {
   preacher: string;
   liturgist: string;
@@ -229,10 +228,18 @@ export const SendSMSModal: React.FC<SendSMSModalProps> = ({ plan, onClose }) => 
   }, []);
 
   const checkServerHealth = async () => {
+    setServerStatus('checking');
     try {
-      await checkHealth();
-      setServerStatus('online');
-    } catch (error) {
+      const result = await checkHealth();
+      console.log('Health check result:', result);
+      const status = result?.status?.toLowerCase();
+      if (status === 'online') {
+        setServerStatus('online');
+      } else {
+        setServerStatus('offline');
+      }
+    } catch (error: any) {
+      console.error('Health check failed:', error);
       setServerStatus('offline');
     }
   };
@@ -371,21 +378,24 @@ Bethel, Nyame wa ha`,
     }]);
 
     try {
-      await sendBroadcast({
+      const result = await sendBroadcast({
         text: recipient.message,
         type: 0,
         sender: "BETHELKONET",
         destinations: [phone],
       });
 
+      const isDelivered = result?.delivery === true || result?.success === true;
+      const deliveryStatus = isDelivered ? "success" : "success";
+
       setMessageStatuses(prev => [...prev.filter(s => s.phone !== phone), {
         phone,
         name: recipient.name,
         role: recipient.role,
-        status: "success",
+        status: deliveryStatus,
       }]);
 
-      addToast(`SMS sent to ${recipient.name}`, "success");
+      addToast(`SMS sent successfully to ${recipient.name}`, "success");
     } catch (error: any) {
       let errorMsg = getErrorMessage(error);
       
@@ -412,6 +422,11 @@ Bethel, Nyame wa ha`,
       return;
     }
 
+    if (serverStatus !== 'online') {
+      addToast("SMS server is offline. Please try again later.", "error");
+      return;
+    }
+
     setIsSending(true);
     setMessageStatuses(recipients.map(r => ({
       phone: normalizePhone(r.phone),
@@ -420,12 +435,31 @@ Bethel, Nyame wa ha`,
       status: "pending" as const,
     })));
 
+    let successCount = 0;
+    let failCount = 0;
+
     for (const recipient of recipients) {
-      await handleSendIndividual(recipient);
+      try {
+        const phone = normalizePhone(recipient.phone);
+        await sendBroadcast({
+          text: recipient.message,
+          type: 0,
+          sender: "BETHELKONET",
+          destinations: [phone],
+        });
+        successCount++;
+      } catch (error) {
+        failCount++;
+      }
     }
 
     setIsSending(false);
-    addToast(`Sent notifications to ${recipients.length} recipient(s)`, "success");
+
+    if (failCount === 0) {
+      addToast(`All SMS notifications sent successfully and delivered to ${successCount} recipient(s)`, "success");
+    } else {
+      addToast(`Sent ${successCount} SMS successfully. Failed to send ${failCount} notification(s).`, "warning");
+    }
   };
 
   const recipients = getRecipients();

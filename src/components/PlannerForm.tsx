@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ServicePlan, ServiceType, BibleReader, StaffMember, StaffClassification } from "../types";
 import { useStaff } from "../context/StaffContext";
+import { useExternalPreacher } from "../context/ExternalPreacherContext";
 
 interface PlannerFormProps {
   initial?: Partial<ServicePlan>;
@@ -15,10 +16,12 @@ const SERVICE_TYPES: { value: ServiceType; label: string; icon: string }[] = [
   { value: "WEDNESDAY_PRAYER_MEETING", label: "Wednesday Prayer Meeting", icon: "🙏" },
 ];
 
-const BIBLE_READER_LABELS = ["First Bible Reader", "Second Bible Reader", "Third Bible Reader"];
+const BIBLE_READER_LABELS = ["First Bible Reader", "Second Bible Reader", "Third Bible Reader (Auto: Liturgist)"];
 
 export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onCancel }) => {
   const { staff, getStaffByRole, getActiveStaff, getStaffByClassification } = useStaff();
+  const { externalPreachers } = useExternalPreacher();
+  
   const [serviceType, setServiceType] = useState<ServiceType>(initial?.serviceType || "FIRST_DIVINE_SERVICE");
   const [serviceDate, setServiceDate] = useState(initial?.serviceDate || "");
   const [theme, setTheme] = useState(initial?.theme || "");
@@ -29,24 +32,54 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
   const [notes, setNotes] = useState(initial?.notes || "");
   const [mcId, setMcId] = useState(initial?.mcId || "");
   const [mcContact, setMcContact] = useState(initial?.mcContact || "");
-  const [bibleReaders, setBibleReaders] = useState<BibleReader[]>(initial?.bibleReaders || [
-    { scriptureReference: "", name: "", contact: "" },
-    { scriptureReference: "", name: "", contact: "" },
-    { scriptureReference: "", name: "", contact: "" },
-  ]);
+  const [bibleReaders, setBibleReaders] = useState<BibleReader[]>(() => {
+    if (initial?.bibleReaders && initial.bibleReaders.length > 0) {
+      return initial.bibleReaders;
+    }
+    return [
+      { scriptureReference: "", name: "", contact: "" },
+      { scriptureReference: "", name: "", contact: "" },
+      { scriptureReference: "", name: "", contact: "" },
+    ];
+  });
   const [preacherContact, setPreacherContact] = useState("");
   const [standbyPreacherContact, setStandbyPreacherContact] = useState("");
   const [liturgistContact, setLiturgistContact] = useState("");
 
+  useEffect(() => {
+    if (initial?.preacherId) {
+      const internalPreacher = staff.find(s => s.id === initial.preacherId);
+      const externalPreacher = externalPreachers.find(s => s.id === initial.preacherId);
+      
+      if (internalPreacher) {
+        setPreacherClassification("Internal");
+      } else if (externalPreacher) {
+        setPreacherClassification("External");
+      }
+    }
+  }, [initial?.preacherId, staff, externalPreachers]);
+
   const internalPreachers = getStaffByClassification("Internal").filter(s => s.roles.includes("Preacher"));
-  const externalPreachers = getStaffByClassification("External").filter(s => s.roles.includes("Preacher"));
-  const preachers = preacherClassification === "Internal" ? internalPreachers : externalPreachers;
+  const internalStandbyPreachers = getStaffByClassification("Internal").filter(s => s.roles.includes("Preacher"));
+  const preachers = preacherClassification === "Internal" 
+    ? internalPreachers 
+    : externalPreachers.filter(p => p.status === "active");
   const bibleReadersStaff = getStaffByRole("Bible Reader");
   const mcs = getStaffByRole("MC");
   const liturgists = getStaffByRole("Liturgist");
 
   const getPreacherContactById = (id: string) => {
     const p = staff.find(s => s.id === id);
+    return p?.phone || "";
+  };
+
+  const getExternalPreacherContactById = (id: string) => {
+    const p = externalPreachers.find(s => s.id === id);
+    return p?.phone || "";
+  };
+
+  const getStandbyPreacherContactById = (id: string) => {
+    const p = internalStandbyPreachers.find(s => s.id === id);
     return p?.phone || "";
   };
 
@@ -65,17 +98,58 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
     return l?.phone || "";
   };
 
+  const getPreacherNameById = (id: string) => {
+    if (preacherClassification === "Internal") {
+      const p = staff.find(s => s.id === id);
+      return p?.fullName || "";
+    } else {
+      const p = externalPreachers.find(s => s.id === id);
+      return p?.fullName || "";
+    }
+  };
+
+  const getPreacherContact = (id: string) => {
+    if (preacherClassification === "Internal") {
+      return getPreacherContactById(id);
+    } else {
+      return getExternalPreacherContactById(id);
+    }
+  };
+
+  useEffect(() => {
+    if (initial?.liturgistId) {
+      const contact = getLiturgistContactById(initial.liturgistId);
+      setLiturgistContact(contact);
+      const liturgist = liturgists.find(s => s.id === initial.liturgistId);
+      if (liturgist && initial.bibleReaders) {
+        const thirdReader = initial.bibleReaders[2] || { scriptureReference: "", name: "", contact: "" };
+        setBibleReaders([
+          initial.bibleReaders[0] || { scriptureReference: "", name: "", contact: "" },
+          initial.bibleReaders[1] || { scriptureReference: "", name: "", contact: "" },
+          { ...thirdReader, name: liturgist.fullName, contact: liturgist.phone }
+        ]);
+      }
+    }
+  }, [initial?.liturgistId, initial?.bibleReaders]);
+
   useEffect(() => {
     if (preacherId) {
-      setPreacherContact(getPreacherContactById(preacherId));
+      setPreacherContact(getPreacherContact(preacherId));
     } else {
       setPreacherContact("");
     }
-  }, [preacherId]);
+  }, [preacherId, preacherClassification]);
+
+  useEffect(() => {
+    if (initial?.standbyPreacherId) {
+      const contact = getStandbyPreacherContactById(initial.standbyPreacherId);
+      setStandbyPreacherContact(contact);
+    }
+  }, [initial?.standbyPreacherId]);
 
   useEffect(() => {
     if (standbyPreacherId) {
-      setStandbyPreacherContact(getPreacherContactById(standbyPreacherId));
+      setStandbyPreacherContact(getStandbyPreacherContactById(standbyPreacherId));
     } else {
       setStandbyPreacherContact("");
     }
@@ -84,14 +158,31 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
   useEffect(() => {
     if (liturgistId) {
       setLiturgistContact(getLiturgistContactById(liturgistId));
+      const liturgist = liturgists.find(s => s.id === liturgistId);
+      if (liturgist) {
+        setBibleReaders(prev => {
+          const newReaders = [...prev];
+          newReaders[2] = {
+            scriptureReference: prev[2]?.scriptureReference || "",
+            name: liturgist.fullName,
+            contact: liturgist.phone
+          };
+          return newReaders;
+        });
+      }
     } else {
       setLiturgistContact("");
+      setBibleReaders(prev => {
+        const newReaders = [...prev];
+        newReaders[2] = { scriptureReference: prev[2]?.scriptureReference || "", name: "", contact: "" };
+        return newReaders;
+      });
     }
   }, [liturgistId]);
 
   useEffect(() => {
     const newReaders = bibleReaders.map((reader) => {
-      if (reader.name) {
+      if (reader.name && reader.name === liturgistContact) {
         const contact = getBibleReaderContactByName(reader.name);
         return { ...reader, contact };
       }
@@ -118,17 +209,29 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const finalBibleReaders = bibleReaders.map((reader, index) => {
+      if (index === 2 && liturgistId) {
+        return {
+          scriptureReference: reader.scriptureReference || "",
+          name: liturgistId ? staff.find(s => s.id === liturgistId)?.fullName || "" : reader.name,
+          contact: liturgistContact
+        };
+      }
+      return reader;
+    });
+    
     onSubmit({
       serviceType,
       serviceDate,
       theme: isPrayerMeeting ? "" : theme,
       preacherId,
-      preacherName: preachers.find(s => s.id === preacherId)?.fullName || "",
-      preacherContact: getPreacherContactById(preacherId),
-      bibleReaders: bibleReaders.filter(br => br.scriptureReference || br.name || br.contact),
+      preacherName: getPreacherNameById(preacherId),
+      preacherContact: getPreacherContact(preacherId),
+      bibleReaders: finalBibleReaders.filter(br => br.scriptureReference || br.name || br.contact),
       standbyPreacherId: isPrayerMeeting ? undefined : standbyPreacherId,
-      standbyPreacherName: isPrayerMeeting ? "" : staff.find(s => s.id === standbyPreacherId)?.fullName || "",
-      standbyPreacherContact: isPrayerMeeting ? "" : getPreacherContactById(standbyPreacherId),
+      standbyPreacherName: isPrayerMeeting ? "" : internalStandbyPreachers.find(s => s.id === standbyPreacherId)?.fullName || "",
+      standbyPreacherContact: isPrayerMeeting ? "" : getStandbyPreacherContactById(standbyPreacherId),
       liturgistId: isPrayerMeeting ? undefined : liturgistId,
       liturgistName: isPrayerMeeting ? "" : staff.find(s => s.id === liturgistId)?.fullName || "",
       liturgistContact: isPrayerMeeting ? "" : getLiturgistContactById(liturgistId),
@@ -202,6 +305,7 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
             onChange={(e) => {
               setPreacherClassification(e.target.value as "Internal" | "External");
               setPreacherId("");
+              setPreacherContact("");
             }}
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -249,7 +353,7 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Standby Preacher</option>
-              {preachers.filter(p => p.id !== preacherId).map(p => (
+              {internalStandbyPreachers.filter(p => p.id !== preacherId).map(p => (
                 <option key={p.id} value={p.id}>{p.fullName}</option>
               ))}
             </select>
@@ -310,34 +414,34 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
                       value={reader.scriptureReference}
                       onChange={(e) => updateBibleReader(index, "scriptureReference", e.target.value)}
                       placeholder="e.g., John 3:16"
-                      className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 ${index === 2 ? 'bg-white' : ''}`}
                     />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Name</label>
-                    <select
+                    <input
+                      type="text"
                       value={reader.name}
-                      onChange={(e) => updateBibleReader(index, "name", e.target.value)}
-                      className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select Reader</option>
-                      {bibleReadersStaff.map(b => (
-                        <option key={b.id} value={b.fullName}>{b.fullName}</option>
-                      ))}
-                    </select>
+                      readOnly={index === 2}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg ${index === 2 ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                      placeholder={index === 2 ? "Auto-filled from Liturgist" : "Select Reader"}
+                    />
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Contact</label>
                     <input
                       type="text"
                       value={reader.contact}
-                      readOnly
-                      placeholder="No contact available"
-                      className="w-full px-3 py-2 text-sm border rounded-lg bg-gray-100 cursor-not-allowed"
+                      readOnly={index === 2}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg ${index === 2 ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                      placeholder={index === 2 ? "Auto-filled from Liturgist" : "Auto-filled"}
                     />
                   </div>
                 </div>
-                {bibleReaders.length > 1 && (
+                {index === 2 && (
+                  <p className="text-xs text-gray-500 mt-2">This is automatically synchronized with the Liturgist selection. Only edit the scripture reference.</p>
+                )}
+                {index < 2 && bibleReaders.length > 2 && (
                   <button
                     type="button"
                     onClick={() => removeBibleReader(index)}
@@ -349,13 +453,15 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={addBibleReader}
-            className="text-blue-600 text-sm mt-2 hover:text-blue-800"
-          >
-            + Add Bible Reader
-          </button>
+          {bibleReaders.length < 3 && (
+            <button
+              type="button"
+              onClick={addBibleReader}
+              className="text-blue-600 text-sm mt-2 hover:text-blue-800"
+            >
+              + Add Bible Reader
+            </button>
+          )}
         </div>
       )}
 

@@ -19,16 +19,33 @@ async function getResponseBody(response: Response): Promise<{ json: any; text: s
 }
 
 export async function checkHealth(): Promise<{ status: string; smsService: string }> {
-  const response = await fetch(`${API_BASE}/health`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  });
+  console.log('=== Health check initiated ===');
+  console.log('API_BASE:', API_BASE);
+  
+  try {
+    const url = `${API_BASE}/health`;
+    console.log('Health check URL:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-  if (!response.ok) {
-    throw new Error('Server health check failed');
+    console.log('Health check response status:', response.status);
+    console.log('Health check response ok:', response.ok);
+
+    if (!response.ok) {
+      throw new Error(`Server health check failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Health check data:', data);
+    return data;
+  } catch (error: any) {
+    console.error('Health check error:', error.message);
+    console.error('Health check error stack:', error.stack);
+    throw error;
   }
-
-  return response.json();
 }
 
 export async function sendBroadcast(payload: SMSRequest): Promise<SMSResponse> {

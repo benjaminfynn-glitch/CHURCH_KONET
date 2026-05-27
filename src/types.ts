@@ -205,7 +205,6 @@ export interface ExternalPreacher {
   fullName: string;
   phone: string;
   society: string;
-  denomination?: string;
   classification: "External";
   status: "active" | "inactive";
   availability?: string[];

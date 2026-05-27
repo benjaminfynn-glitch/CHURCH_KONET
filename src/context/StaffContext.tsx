@@ -27,6 +27,8 @@ interface StaffContextType {
   exportToCSV: () => void;
   roleStats: Record<StaffRole, number>;
   classificationStats: Record<StaffClassification, number>;
+  genderStats: Record<StaffRole, { male: number; female: number; total: number }>;
+  classificationGenderStats: Record<StaffClassification, { male: number; female: number; total: number }>;
 }
 
 const StaffContext = createContext<StaffContextType | undefined>(undefined);
@@ -131,6 +133,26 @@ export const StaffProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return acc;
   }, {} as Record<StaffClassification, number>);
 
+  const genderStats = ALL_ROLES.reduce((acc, role) => {
+    const roleStaff = staff.filter(s => s.roles.includes(role) && s.status === "active");
+    acc[role] = {
+      male: roleStaff.filter(s => s.gender === "Male").length,
+      female: roleStaff.filter(s => s.gender === "Female").length,
+      total: roleStaff.length,
+    };
+    return acc;
+  }, {} as Record<StaffRole, { male: number; female: number; total: number }>);
+
+  const classificationGenderStats = (["Internal", "External"] as StaffClassification[]).reduce((acc, classification) => {
+    const classificationStaff = staff.filter(s => s.classification === classification && s.status === "active");
+    acc[classification] = {
+      male: classificationStaff.filter(s => s.gender === "Male").length,
+      female: classificationStaff.filter(s => s.gender === "Female").length,
+      total: classificationStaff.length,
+    };
+    return acc;
+  }, {} as Record<StaffClassification, { male: number; female: number; total: number }>);
+
   return (
     <StaffContext.Provider
       value={{
@@ -146,6 +168,8 @@ export const StaffProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         exportToCSV,
         roleStats,
         classificationStats,
+        genderStats,
+        classificationGenderStats,
       }}
     >
       {children}

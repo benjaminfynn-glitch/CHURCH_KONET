@@ -11,7 +11,6 @@ export const ExternalPreacherForm: React.FC<ExternalPreacherFormProps> = ({ init
   const [fullName, setFullName] = useState(initial?.fullName || "");
   const [phone, setPhone] = useState(initial?.phone || "");
   const [society, setSociety] = useState(initial?.society || "");
-  const [denomination, setDenomination] = useState(initial?.denomination || "");
   const [status, setStatus] = useState<"active" | "inactive">(initial?.status || "active");
   const [notes, setNotes] = useState(initial?.notes || "");
   const [isFavorite, setIsFavorite] = useState(initial?.isFavorite || false);
@@ -27,7 +26,6 @@ export const ExternalPreacherForm: React.FC<ExternalPreacherFormProps> = ({ init
       status,
       isFavorite,
     };
-    if (denomination.trim()) payload.denomination = denomination.trim();
     if (notes.trim()) payload.notes = notes.trim();
     onSubmit(payload);
   };
@@ -79,17 +77,6 @@ export const ExternalPreacherForm: React.FC<ExternalPreacherFormProps> = ({ init
           onChange={(e) => setSociety(e.target.value)}
           placeholder="e.g., Mt. Olivet Methodist Church, Esuekyir"
           required
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Denomination</label>
-        <input
-          type="text"
-          value={denomination}
-          onChange={(e) => setDenomination(e.target.value)}
-          placeholder="e.g., Methodist, Presbyterian, etc."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         />
       </div>

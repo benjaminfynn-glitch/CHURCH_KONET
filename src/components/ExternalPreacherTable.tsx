@@ -59,7 +59,6 @@ export const ExternalPreacherTable: React.FC<ExternalPreacherTableProps> = ({ on
               <th className="text-left p-3 text-sm font-medium text-gray-700">Name</th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">Society</th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">Phone</th>
-              <th className="text-left p-3 text-sm font-medium text-gray-700">Denomination</th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">Status</th>
               <th className="text-left p-3 text-sm font-medium text-gray-700">Actions</th>
             </tr>
@@ -75,7 +74,6 @@ export const ExternalPreacherTable: React.FC<ExternalPreacherTableProps> = ({ on
                 </td>
                 <td className="p-3 text-sm">{p.society}</td>
                 <td className="p-3 text-sm">{p.phone}</td>
-                <td className="p-3 text-sm">{p.denomination || "-"}</td>
                 <td className="p-3">
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${p.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
                     {p.status}

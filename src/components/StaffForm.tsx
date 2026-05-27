@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StaffMember, StaffRole, StaffClassification } from "../types";
+import { StaffMember, StaffRole } from "../types";
 
 interface StaffFormProps {
   initial?: Partial<StaffMember>;
@@ -8,7 +8,6 @@ interface StaffFormProps {
 }
 
 const ROLE_OPTIONS: StaffRole[] = ["Preacher", "Liturgist", "Bible Reader", "MC"];
-const CLASSIFICATION_OPTIONS: StaffClassification[] = ["Internal", "External"];
 
 export const StaffForm: React.FC<StaffFormProps> = ({ initial, onSubmit, onCancel }) => {
   const [fullName, setFullName] = useState(initial?.fullName || "");
@@ -17,8 +16,6 @@ export const StaffForm: React.FC<StaffFormProps> = ({ initial, onSubmit, onCance
   const [gender, setGender] = useState<"Male" | "Female" | "Other">(initial?.gender || "Male");
   const [status, setStatus] = useState<"active" | "inactive">(initial?.status || "active");
   const [notes, setNotes] = useState(initial?.notes || "");
-  const [classification, setClassification] = useState<StaffClassification>(initial?.classification || "Internal");
-  const [society, setSociety] = useState((initial as any)?.society || "");
 
   const handleRoleToggle = (role: StaffRole) => {
     if (roles.includes(role)) {
@@ -36,10 +33,9 @@ export const StaffForm: React.FC<StaffFormProps> = ({ initial, onSubmit, onCance
       phone: phone.trim(),
       gender,
       status,
-      classification,
+      classification: "Internal",
     };
     if (notes.trim()) payload.notes = notes.trim();
-    if (classification === "External" && society.trim()) payload.society = society.trim();
     onSubmit(payload);
   };
 
@@ -114,32 +110,10 @@ export const StaffForm: React.FC<StaffFormProps> = ({ initial, onSubmit, onCance
         </select>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Classification *</label>
-        <select
-          value={classification}
-          onChange={(e) => setClassification(e.target.value as StaffClassification)}
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-        >
-          {CLASSIFICATION_OPTIONS.map(c => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+      <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+        <span className="font-medium">Classification:</span>
+        <span className="text-indigo-700 font-semibold">Internal</span>
       </div>
-
-      {classification === "External" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name of Society/Organization</label>
-          <input
-            type="text"
-            value={society}
-            onChange={(e) => setSociety(e.target.value)}
-            placeholder="e.g., Mt. Olivet Methodist Church"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Notes/Remarks</label>

@@ -11,6 +11,26 @@ import { formatChurchDate } from "../utils/churchDate";
 
 type PlannerView = "table" | "calendar";
 
+const MONTH_OPTIONS = [
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+const getCurrentMonth = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
+
 export default function PlannerPage() {
   const { addPlan, updatePlan, plans } = usePlanner();
   const { addToast } = useToast();
@@ -108,12 +128,18 @@ export default function PlannerPage() {
 
           <div className="flex-1 min-w-0">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Month</label>
-            <input
-              type="month"
+            <select
               value={filterMonth}
               onChange={(e) => setFilterMonth(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
-            />
+            >
+              <option value="">All Months</option>
+              {MONTH_OPTIONS.map(month => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
@@ -150,7 +176,7 @@ export default function PlannerPage() {
 
         <div className="p-4">
           {view === "table" ? (
-            <PlannerTable onEdit={handleEdit} />
+            <PlannerTable onEdit={handleEdit} filterServiceType={filterServiceType} filterMonth={filterMonth} />
           ) : (
             <PlannerCalendar onEdit={handleEdit} />
           )}

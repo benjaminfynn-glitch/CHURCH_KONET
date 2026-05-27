@@ -103,8 +103,7 @@ export const ExternalPreacherProvider: React.FC<{ children: React.ReactNode }> =
     return externalPreachers.filter(p =>
       p.fullName.toLowerCase().includes(q) ||
       p.phone.includes(q) ||
-      (p.society && p.society.toLowerCase().includes(q)) ||
-      (p.denomination && p.denomination.toLowerCase().includes(q))
+      (p.society && p.society.toLowerCase().includes(q))
     );
   }, [externalPreachers]);
 
@@ -142,10 +141,10 @@ export const ExternalPreacherProvider: React.FC<{ children: React.ReactNode }> =
   }, [externalPreachers]);
 
   const exportToCSV = useCallback(() => {
-    const headers = ["Full Name,Phone,Society,Denomination,Status,Favorite"];
+    const headers = ["Full Name,Phone,Society,Status,Favorite"];
     const csvContent = [
       headers.join(","),
-      ...externalPreachers.map(p => [p.fullName, p.phone, p.society, p.denomination || "", p.status, p.isFavorite ? "Yes" : "No"].join(",")),
+      ...externalPreachers.map(p => [p.fullName, p.phone, p.society, p.status, p.isFavorite ? "Yes" : "No"].join(",")),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv" });

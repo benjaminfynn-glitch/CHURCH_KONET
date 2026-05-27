@@ -10,21 +10,28 @@ export default function ReportsPage() {
   const { plans } = usePlanner();
 
   const internalCount = classificationStats.Internal || 0;
-  const externalCount = classificationStats.External || 0;
+  const externalCount = externalPreachers.length;
 
   const mostInvitedPreacher = React.useMemo(() => {
-    const preacherCounts: Record<string, { name: string; count: number; society?: string }> = {};
+    const preacherCounts: Record<string, { name: string; count: number; society?: string; isExternal: boolean }> = {};
+    
     externalPreachers.forEach(p => {
-      preacherCounts[p.id!] = { name: p.fullName, count: 0, society: p.society };
+      preacherCounts[p.id!] = { name: p.fullName, count: 0, society: p.society, isExternal: true };
+    });
+    
+    staff.filter(s => s.roles.includes("Preacher")).forEach(p => {
+      preacherCounts[p.id!] = preacherCounts[p.id!] || { name: p.fullName, count: 0, isExternal: false };
     });
 
     plans.forEach(plan => {
       if (plan.preacherId) {
         const preacher = staff.find(s => s.id === plan.preacherId);
+        const externalPreacher = externalPreachers.find(e => e.id === plan.preacherId);
+        
         if (preacher) {
-          const key = preacher.id!;
-          preacherCounts[key] = preacherCounts[key] || { name: preacher.fullName, count: 0 };
-          preacherCounts[key].count += 1;
+          preacherCounts[preacher.id].count += 1;
+        } else if (externalPreacher) {
+          preacherCounts[externalPreacher.id].count += 1;
         }
       }
     });
@@ -42,8 +49,8 @@ export default function ReportsPage() {
 
   const upcomingExternalPreachers = React.useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
-    return plans.filter(p => p.serviceDate >= today && p.preacherId);
-  }, [plans]);
+    return plans.filter(p => p.serviceDate >= today && p.preacherId && externalPreachers.some(e => e.id === p.preacherId));
+  }, [plans, externalPreachers]);
 
   const statsCards = [
     { label: "Total Internal Preachers", value: internalCount, color: "blue" },
@@ -78,6 +85,9 @@ export default function ReportsPage() {
                 <p className="text-gray-600 mt-1">{mostInvitedPreacher.society}</p>
               )}
               <p className="text-blue-700 font-medium mt-2">{mostInvitedPreacher.count} times invited</p>
+              <p className={`text-xs mt-1 ${mostInvitedPreacher.isExternal ? 'text-pink-600' : 'text-blue-600'}`}>
+                {mostInvitedPreacher.isExternal ? 'External Preacher' : 'Internal Preacher'}
+              </p>
             </div>
           ) : (
             <p className="text-gray-500 text-center py-4">No invitation data yet</p>
