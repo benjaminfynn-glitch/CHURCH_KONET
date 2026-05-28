@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { ServicePlan, ServiceStatus, ServiceType, StaffRole } from "../types";
 import { usePlanner } from "../context/PlannerContext";
 import { SendSMSModal } from "./SendSMSModal";
+import { ConfirmationModal } from "./ConfirmationModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatChurchDate } from "../utils/churchDate";
 
@@ -62,6 +63,17 @@ export const PlannerTable: React.FC<PlannerTableProps> = ({ onEdit, filterServic
     
     return result;
   }, [plans, filterServiceType, filterMonth]);
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      await deletePlan(deleteConfirmId);
+      setDeleteConfirmId(null);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     await deletePlan(id);
@@ -230,7 +242,7 @@ export const PlannerTable: React.FC<PlannerTableProps> = ({ onEdit, filterServic
                           Edit
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(plan.id!); }}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteClick(plan.id!); }}
                           className="px-3 py-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded text-sm font-medium"
                         >
                           Delete
@@ -246,26 +258,16 @@ export const PlannerTable: React.FC<PlannerTableProps> = ({ onEdit, filterServic
       )}
 
       {deleteConfirmId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">Confirm Delete</h3>
-            <p className="text-gray-600 dark:text-slate-400 mb-4">Are you sure you want to delete this planner entry?</p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                className="px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirmId)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmationModal
+          isOpen={true}
+          onClose={() => setDeleteConfirmId(null)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Service Plan"
+          message="This action will permanently remove this service plan from the system. This cannot be undone. Are you sure you want to proceed?"
+          confirmButtonText="Delete Plan"
+          cancelButtonText="Cancel"
+          dangerLevel="danger"
+        />
       )}
 
       {smsPlan && (

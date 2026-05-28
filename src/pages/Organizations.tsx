@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useMembers } from "../context/MembersContext";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
+import { ConfirmationModal } from "../components/ConfirmationModal";
 
 export default function OrganizationsPage() {
   const { organizations, addOrganization, deleteOrganization } = useMembers();
@@ -10,6 +11,7 @@ export default function OrganizationsPage() {
   const { isAdmin } = useAuth();
 
   const [newOrg, setNewOrg] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const handleAdd = async () => {
     if (!newOrg.trim()) return addToast("Organization name required", "error");
@@ -18,9 +20,16 @@ export default function OrganizationsPage() {
     setNewOrg("");
   };
 
-  const handleDelete = async (name: string) => {
-    await deleteOrganization(name);
-    addToast("Organization deleted", "success");
+  const handleDeleteClick = (name: string) => {
+    setDeleteConfirmId(name);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      await deleteOrganization(deleteConfirmId);
+      addToast("Organization deleted", "success");
+      setDeleteConfirmId(null);
+    }
   };
 
   return (
@@ -53,12 +62,23 @@ export default function OrganizationsPage() {
             <li key={org} className="flex justify-between items-center border-b py-2">
               <span>{org}</span>
               {isAdmin && (
-                <button className="text-red-600" onClick={() => handleDelete(org)}>Delete</button>
+                <button className="text-red-600" onClick={() => handleDeleteClick(org)}>Delete</button>
               )}
             </li>
           ))}
         </ul>
       </div>
+
+      <ConfirmationModal
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Organization"
+        message={`This action will remove "${deleteConfirmId}" from the organization list. Any members assigned to this organization will need to be updated. Are you sure you want to proceed?`}
+        confirmButtonText="Delete Organization"
+        cancelButtonText="Cancel"
+        dangerLevel="danger"
+      />
     </div>
   );
 }

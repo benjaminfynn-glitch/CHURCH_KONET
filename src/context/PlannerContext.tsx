@@ -53,13 +53,9 @@ export const PlannerProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     const q = query(collection(db, "planner"), orderBy("serviceDate", "desc"));
-    const unsub = onSnapshot(q, async (snap) => {
+    const unsub = onSnapshot(q, (snap) => {
       const updatedPlans = snap.docs.map((d) => {
         const plan = { id: d.id, ...(d.data() as ServicePlan) } as ServicePlan;
-        const computedStatus = getStatusFromDate(plan.serviceDate);
-        if (plan.status !== computedStatus && plan.status !== "cancelled") {
-          updateDoc(doc(db, "planner", d.id), { status: computedStatus });
-        }
         return plan;
       });
       setPlans(updatedPlans);

@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { StaffMember, StaffRole, StaffClassification } from "../types";
 import { useStaff } from "../context/StaffContext";
+import { Pagination } from "./Pagination";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 interface StaffTableProps {
   onEdit: (staff: StaffMember) => void;
@@ -32,10 +34,12 @@ const getStats = (stats: { male: number; female: number; total: number } | undef
 
 export const StaffTable: React.FC<StaffTableProps> = ({ onEdit }) => {
   const { staff, deleteStaff, searchStaff, genderStats, classificationGenderStats } = useStaff();
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<StaffRole | "">("");
   const [classificationFilter, setClassificationFilter] = useState<StaffClassification | "">("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(30);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const filteredStaff = React.useMemo(() => {
     let result = staff;
@@ -51,9 +55,21 @@ export const StaffTable: React.FC<StaffTableProps> = ({ onEdit }) => {
     return result.sort((a, b) => a.fullName.localeCompare(b.fullName));
   }, [staff, searchQuery, roleFilter, classificationFilter, searchStaff]);
 
-  const handleDelete = async (id: string) => {
-    await deleteStaff(id);
-    setDeleteConfirm(null);
+  const totalPages = Math.ceil(filteredStaff.length / itemsPerPage);
+  const paginatedStaff = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredStaff.slice(start, start + itemsPerPage);
+  }, [filteredStaff, currentPage, itemsPerPage]);
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      await deleteStaff(deleteConfirmId);
+      setDeleteConfirmId(null);
+    }
   };
 
   return (
@@ -182,7 +198,7 @@ export const StaffTable: React.FC<StaffTableProps> = ({ onEdit }) => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse hidden md:table">
           <thead>
             <tr className="bg-gray-50 dark:bg-slate-700">
               <th className="text-left p-3 text-sm font-medium text-gray-700 dark:text-gray-200">Name</th>
@@ -194,7 +210,7 @@ export const StaffTable: React.FC<StaffTableProps> = ({ onEdit }) => {
             </tr>
           </thead>
           <tbody>
-            {filteredStaff.map((s) => (
+            {paginatedStaff.map((s) => (
               <tr key={s.id} className="border-b hover:bg-gray-50 dark:border-slate-700">
                 <td className="p-3 text-sm font-medium">{s.fullName}</td>
                 <td className="p-3">
@@ -237,7 +253,7 @@ export const StaffTable: React.FC<StaffTableProps> = ({ onEdit }) => {
                       Edit
                     </button>
                     <button
-                      onClick={() => setDeleteConfirm(s.id!)}
+                      onClick={() => handleDeleteClick(s.id!)}
                       className="text-red-600 hover:text-red-800 text-sm"
                     >
                       Delete
@@ -248,30 +264,84 @@ export const StaffTable: React.FC<StaffTableProps> = ({ onEdit }) => {
             ))}
           </tbody>
         </table>
+
+        <div className="md:hidden space-y-3">
+          {paginatedStaff.map((s) => (
+            <div key={s.id} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <p className="font-medium text-slate-900 dark:text-white">{s.fullName}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">{s.phone}</p>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => onEdit(s)}
+                    className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(s.id!)}
+                    className="text-red-600 hover:text-red-800 text-sm px-2 py-1"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1 mb-2">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  s.classification === "Internal" 
+                    ? "bg-indigo-100 text-indigo-800" 
+                    : "bg-orange-100 text-orange-800"
+                }`}>
+                  {s.classification}
+                </span>
+                {s.roles.map(role => (
+                  <span key={role} className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    role === "Preacher" ? "bg-blue-100 text-blue-800" :
+                    role === "Liturgist" ? "bg-purple-100 text-purple-800" :
+                    role === "Bible Reader" ? "bg-green-100 text-green-800" :
+                    "bg-pink-100 text-pink-800"
+                  }`}>
+                    {role}
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                <span>{s.gender}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${s.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                  {s.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
-            <p className="text-gray-600 mb-4">Are you sure you want to delete this staff member?</p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 bg-gray-200 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+      {deleteConfirmId && (
+        <ConfirmationModal
+          isOpen={true}
+          onClose={() => setDeleteConfirmId(null)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Staff Member"
+          message="This action will permanently remove this staff member from the system. This cannot be undone. Are you sure you want to proceed?"
+          confirmButtonText="Delete Staff"
+          cancelButtonText="Cancel"
+          dangerLevel="danger"
+        />
       )}
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filteredStaff.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={(newItemsPerPage) => {
+          setItemsPerPage(newItemsPerPage);
+          setCurrentPage(1);
+        }}
+      />
     </div>
   );
 };

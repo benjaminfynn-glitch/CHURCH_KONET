@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { ExternalPreacher } from "../types";
 import { useExternalPreacher } from "../context/ExternalPreacherContext";
+import { Pagination } from "./Pagination";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 interface ExternalPreacherTableProps {
   onEdit: (preacher: ExternalPreacher) => void;
@@ -8,9 +10,11 @@ interface ExternalPreacherTableProps {
 
 export const ExternalPreacherTable: React.FC<ExternalPreacherTableProps> = ({ onEdit }) => {
   const { externalPreachers, deletePreacher, searchPreachers, getFavoritePreachers } = useExternalPreacher();
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [favoriteFilter, setFavoriteFilter] = useState<"all" | "favorites">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(30);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const filteredPreachers = React.useMemo(() => {
     let result = externalPreachers;
@@ -23,9 +27,21 @@ export const ExternalPreacherTable: React.FC<ExternalPreacherTableProps> = ({ on
     return result.sort((a, b) => a.fullName.localeCompare(b.fullName));
   }, [externalPreachers, searchQuery, favoriteFilter, searchPreachers, getFavoritePreachers]);
 
-  const handleDelete = async (id: string) => {
-    await deletePreacher(id);
-    setDeleteConfirm(null);
+  const totalPages = Math.ceil(filteredPreachers.length / itemsPerPage);
+  const paginatedPreachers = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredPreachers.slice(start, start + itemsPerPage);
+  }, [filteredPreachers, currentPage, itemsPerPage]);
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmId) {
+      await deletePreacher(deleteConfirmId);
+      setDeleteConfirmId(null);
+    }
   };
 
   return (
@@ -53,7 +69,7 @@ export const ExternalPreacherTable: React.FC<ExternalPreacherTableProps> = ({ on
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse hidden md:table">
           <thead>
             <tr className="bg-gray-50">
               <th className="text-left p-3 text-sm font-medium text-gray-700">Name</th>
@@ -64,7 +80,7 @@ export const ExternalPreacherTable: React.FC<ExternalPreacherTableProps> = ({ on
             </tr>
           </thead>
           <tbody>
-            {filteredPreachers.map((p) => (
+            {paginatedPreachers.map((p) => (
               <tr key={p.id} className="border-b hover:bg-gray-50">
                 <td className="p-3 text-sm font-medium">
                   <div className="flex items-center gap-2">
@@ -80,16 +96,16 @@ export const ExternalPreacherTable: React.FC<ExternalPreacherTableProps> = ({ on
                   </span>
                 </td>
                 <td className="p-3">
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <button
                       onClick={() => onEdit(p)}
-                      className="text-blue-600 hover:text-blue-800 text-sm"
+                      className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => setDeleteConfirm(p.id!)}
-                      className="text-red-600 hover:text-red-800 text-sm"
+                      onClick={() => handleDeleteClick(p.id!)}
+                      className="text-red-600 hover:text-red-800 text-sm px-2 py-1"
                     >
                       Delete
                     </button>
@@ -99,30 +115,68 @@ export const ExternalPreacherTable: React.FC<ExternalPreacherTableProps> = ({ on
             ))}
           </tbody>
         </table>
+
+        <div className="md:hidden space-y-3">
+          {paginatedPreachers.map((p) => (
+            <div key={p.id} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    {p.isFavorite && <span className="text-yellow-500">⭐</span>}
+                    <p className="font-medium text-slate-900 dark:text-white">{p.fullName}</p>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">{p.society}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">{p.phone}</p>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => onEdit(p)}
+                    className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(p.id!)}
+                    className="text-red-600 hover:text-red-800 text-sm px-2 py-1"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "active" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                  {p.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
-            <p className="text-gray-600 mb-4">Are you sure you want to delete this external preacher?</p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 bg-gray-200 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+      {deleteConfirmId && (
+        <ConfirmationModal
+          isOpen={true}
+          onClose={() => setDeleteConfirmId(null)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete External Preacher"
+          message="This action will permanently remove this external preacher from the system. This cannot be undone. Are you sure you want to proceed?"
+          confirmButtonText="Delete Preacher"
+          cancelButtonText="Cancel"
+          dangerLevel="danger"
+        />
       )}
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filteredPreachers.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={(newItemsPerPage) => {
+          setItemsPerPage(newItemsPerPage);
+          setCurrentPage(1);
+        }}
+      />
     </div>
   );
 };

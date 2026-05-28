@@ -3,6 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Member } from "../types";
 import { formatDateDDMMYYYY } from "../utils/date";
+import { ConfirmationModal } from "./ConfirmationModal";
 
 type Props = {
   members: Member[];
@@ -12,6 +13,18 @@ type Props = {
 
 const MembersTable: React.FC<Props> = ({ members, onEdit, onDelete }) => {
   const navigate = useNavigate();
+  const [deleteConfirm, setDeleteConfirm] = React.useState<Member | null>(null);
+
+  const handleDeleteClick = (m: Member) => {
+    setDeleteConfirm(m);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirm) {
+      onDelete(deleteConfirm);
+      setDeleteConfirm(null);
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
@@ -46,7 +59,7 @@ const MembersTable: React.FC<Props> = ({ members, onEdit, onDelete }) => {
                     <button onClick={() => onEdit(m)} title="Edit" className="text-slate-500 hover:text-indigo-600">
                       Edit
                     </button>
-                    <button onClick={() => onDelete(m)} title="Delete" className="text-red-500 hover:text-red-600">
+                    <button onClick={() => handleDeleteClick(m)} title="Delete" className="text-red-500 hover:text-red-600">
                       Delete
                     </button>
                   </div>
@@ -64,6 +77,19 @@ const MembersTable: React.FC<Props> = ({ members, onEdit, onDelete }) => {
           </tbody>
         </table>
       </div>
+
+      {deleteConfirm && (
+        <ConfirmationModal
+          isOpen={true}
+          onClose={() => setDeleteConfirm(null)}
+          onConfirm={handleDeleteConfirm}
+          title="Delete Member"
+          message={`This action will permanently remove ${deleteConfirm.fullName} from the system. This cannot be undone. Are you sure you want to proceed?`}
+          confirmButtonText="Delete Member"
+          cancelButtonText="Cancel"
+          dangerLevel="danger"
+        />
+      )}
     </div>
   );
 };

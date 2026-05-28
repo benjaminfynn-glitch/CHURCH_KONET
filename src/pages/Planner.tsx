@@ -57,6 +57,11 @@ export default function PlannerPage() {
     }
   };
 
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setEditingPlan(null);
+  };
+
   const handleEdit = (plan: ServicePlan) => {
     setEditingPlan(plan);
     setModalOpen(true);
@@ -193,7 +198,7 @@ export default function PlannerPage() {
               <PlannerForm
                 initial={editingPlan || undefined}
                 onSubmit={handleSubmit}
-                onCancel={handleCloseModal}
+                onCancel={handleModalClose}
               />
             </div>
           </div>
