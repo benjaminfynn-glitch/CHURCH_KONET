@@ -94,6 +94,13 @@ export const PlannerTable: React.FC<PlannerTableProps> = ({ onEdit, filterServic
     setExpandedCards(newExpanded);
   };
 
+  const handleSMSSent = async () => {
+    if (smsPlan?.id) {
+      await updatePlan(smsPlan.id, { smsSent: true });
+    }
+    setSmsPlan(null);
+  };
+
   const handleCardClick = (e: React.MouseEvent, id: string) => {
     const target = e.target as HTMLElement;
     if (target.closest('button') || target.closest('select')) {
@@ -233,7 +240,7 @@ export const PlannerTable: React.FC<PlannerTableProps> = ({ onEdit, filterServic
                           onClick={(e) => { e.stopPropagation(); setSmsPlan(plan); }}
                           className="px-3 py-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded text-sm font-medium"
                         >
-                          Send SMS
+                          {plan.smsSent ? "✓ SMS Sent" : "Send SMS"}
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); onEdit(plan); }}
@@ -271,7 +278,7 @@ export const PlannerTable: React.FC<PlannerTableProps> = ({ onEdit, filterServic
       )}
 
       {smsPlan && (
-        <SendSMSModal plan={smsPlan} onClose={() => setSmsPlan(null)} />
+        <SendSMSModal plan={smsPlan} onClose={() => setSmsPlan(null)} onSendComplete={handleSMSSent} />
       )}
     </div>
   );

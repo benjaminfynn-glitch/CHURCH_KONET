@@ -7,6 +7,7 @@ import { formatChurchDate } from "../utils/churchDate";
 interface SendSMSModalProps {
   plan: ServicePlan;
   onClose: () => void;
+  onSendComplete?: () => void;
 }
 
 const CHURCH_NAME = "Bethel Society, Efutu";
@@ -217,7 +218,7 @@ function normalizePhone(phone: string): string {
   return normalized;
 }
 
-export const SendSMSModal: React.FC<SendSMSModalProps> = ({ plan, onClose }) => {
+export const SendSMSModal: React.FC<SendSMSModalProps> = ({ plan, onClose, onSendComplete }) => {
   const { addToast } = useToast();
   const [isSending, setIsSending] = useState(false);
   const [messageStatuses, setMessageStatuses] = useState<MessageStatus[]>([]);
@@ -457,6 +458,9 @@ Bethel, Nyame wa ha`,
 
     if (failCount === 0) {
       addToast(`All SMS notifications sent successfully and delivered to ${successCount} recipient(s)`, "success");
+      if (onSendComplete) {
+        onSendComplete();
+      }
     } else {
       addToast(`Sent ${successCount} SMS successfully. Failed to send ${failCount} notification(s).`, "warning");
     }

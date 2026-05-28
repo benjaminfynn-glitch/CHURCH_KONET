@@ -171,6 +171,7 @@ export interface ServicePlan {
   mcId?: string;
   mcName?: string;
   mcContact?: string;
+  smsSent?: boolean;
 }
 
 export interface PlannerFilter {
