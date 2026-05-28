@@ -18,6 +18,12 @@ const SERVICE_TYPES: { value: ServiceType; label: string; icon: string }[] = [
 
 const BIBLE_READER_LABELS = ["First Bible Reader", "Second Bible Reader", "Third Bible Reader (Auto: Liturgist)"];
 
+const getBibleReaderContact = (name: string, bibleReadersStaff: any[], liturgistName: string) => {
+  if (!name) return "";
+  const reader = bibleReadersStaff.find((s: any) => s.fullName === name);
+  return reader?.phone || "";
+};
+
 export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onCancel }) => {
   const { staff, getStaffByRole, getActiveStaff, getStaffByClassification } = useStaff();
   const { externalPreachers } = useExternalPreacher();
@@ -46,6 +52,8 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
   const [standbyPreacherContact, setStandbyPreacherContact] = useState("");
   const [liturgistContact, setLiturgistContact] = useState("");
 
+  const bibleReadersStaff = getStaffByRole("Bible Reader");
+
   useEffect(() => {
     if (initial?.preacherId) {
       const internalPreacher = staff.find(s => s.id === initial.preacherId);
@@ -64,7 +72,6 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
   const preachers = preacherClassification === "Internal" 
     ? internalPreachers 
     : externalPreachers.filter(p => p.status === "active");
-  const bibleReadersStaff = getStaffByRole("Bible Reader");
   const mcs = getStaffByRole("MC");
   const liturgists = getStaffByRole("Liturgist");
 
@@ -181,10 +188,19 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
   }, [liturgistId]);
 
   useEffect(() => {
-    const newReaders = bibleReaders.map((reader) => {
-      if (reader.name && reader.name === liturgistContact) {
-        const contact = getBibleReaderContactByName(reader.name);
-        return { ...reader, contact };
+    const newReaders = bibleReaders.map((reader, index) => {
+      if (index === 2 && liturgistId) {
+        return {
+          scriptureReference: reader.scriptureReference || "",
+          name: liturgistId ? staff.find(s => s.id === liturgistId)?.fullName || "" : reader.name,
+          contact: liturgistContact
+        };
+      }
+      if (reader.name && index < 2) {
+        const contact = getBibleReaderContact(reader.name, bibleReadersStaff, liturgistContact);
+        if (reader.contact !== contact) {
+          return { ...reader, contact };
+        }
       }
       return reader;
     });
@@ -192,7 +208,7 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
     if (hasChanges) {
       setBibleReaders(newReaders);
     }
-  }, [bibleReaders.map(r => r.name).join(",")]);
+  }, [bibleReaders.map(r => r.name).join(","), liturgistContact, liturgistId]);
 
   const updateBibleReader = (index: number, field: keyof BibleReader, value: string) => {
     const newReaders = [...bibleReaders];
@@ -419,22 +435,35 @@ export const PlannerForm: React.FC<PlannerFormProps> = ({ initial, onSubmit, onC
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={reader.name}
-                      readOnly={index === 2}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg ${index === 2 ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                      placeholder={index === 2 ? "Auto-filled from Liturgist" : "Select Reader"}
-                    />
+                    {index === 2 ? (
+                      <input
+                        type="text"
+                        value={reader.name}
+                        readOnly
+                        className="w-full px-3 py-2 text-sm border rounded-lg bg-gray-100 cursor-not-allowed"
+                        placeholder="Auto-filled from Liturgist"
+                      />
+                    ) : (
+                      <select
+                        value={reader.name}
+                        onChange={(e) => updateBibleReader(index, "name", e.target.value)}
+                        className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select Reader</option>
+                        {bibleReadersStaff.map((br: any) => (
+                          <option key={br.id} value={br.fullName}>{br.fullName}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs text-gray-600 mb-1">Contact</label>
                     <input
                       type="text"
                       value={reader.contact}
-                      readOnly={index === 2}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg ${index === 2 ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                      placeholder={index === 2 ? "Auto-filled from Liturgist" : "Auto-filled"}
+                      readOnly={index < 2}
+                      className={`w-full px-3 py-2 text-sm border rounded-lg ${index < 2 ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                      placeholder={index < 2 ? "Auto-filled from selection" : "Auto-filled from Liturgist"}
                     />
                   </div>
                 </div>
